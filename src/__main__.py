@@ -10,8 +10,9 @@ logger = logging.getLogger(__file__)
 
 
 class App:
-    def __init__(self, verbose: int = 0) -> None:
+    def __init__(self, verbose: int = 0, chunk_size: int = 2000) -> None:
         self._verbose: int = verbose
+        self._chunk_size: int = chunk_size
         LoggingSystem.global_setup(verbose)
 
     def index(self) -> None:
