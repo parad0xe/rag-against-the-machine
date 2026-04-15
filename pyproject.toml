@@ -4,7 +4,9 @@ version = "0.0.1"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "bm25s>=0.3.3",
     "fire>=0.7.1",
+    "tqdm>=4.67.3",
 ]
 
 [dependency-groups]
