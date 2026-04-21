@@ -1,22 +1,32 @@
 import glob
+import json
 import logging
 import os
 from pathlib import Path
 from typing import Any
 
 import bm25s
+import chromadb
+from chromadb.utils import embedding_functions
 from pydantic import PositiveInt, validate_call
 from tqdm import tqdm
 
 from src.chain import CustomTextSplitter
 from src.exceptions.document import NoDocumentError
+from src.exceptions.schema import (
+    SchemaInvalidJSONFormatError,
+    SchemaInvalidJSONRootError,
+)
 from src.exceptions.storage import StorageDirNotFoundError
 from src.models.chunk import ChunkMetadata
 from src.models.stats import Stats
-from src.utils.common_util import pluralize
+from src.utils.common_util import file_md5sum, md5sum, pluralize
 from src.utils.path_util import get_extension
 
 logger = logging.getLogger(__file__)
+
+
+MAX_BATCH_SIZE = 5000
 
 
 def __get_filepaths(
@@ -42,13 +52,24 @@ def __get_filepaths(
     return filepaths
 
 
+def manifest_retrieve(filepath: str) -> dict[str, Any]:
+    return {}
+
+
+def manifest_save(filepath: str, manifest: dict[str, Any]) -> None:
+    pass
+
+
 @validate_call()
 def entrypoint_index(
     path: Path = Path("vllm-0.10.1"),
     extensions: str = "*",
     chunk_size: PositiveInt = 2000,
-    index_dirpath: Path = Path("data/processed/bm25_index"),
+    bm25_dirpath: Path = Path("data/processed/bm25_index"),
+    chroma_dirpath: Path = Path("data/processed/chroma_index"),
     stats_filepath: Path = Path("data/processed/stats.dat"),
+    chunks_filepath: Path = Path("data/processed/chunks.json"),
+    manifest_filepath: Path = Path("data/processed/manifest.json"),
 ) -> None:
     # TD: se renseigner sur chromadb
     # TD: se renseigner sur langchain (smart chunking)
@@ -71,10 +92,50 @@ def entrypoint_index(
     # 5. save chunks and bm25 index under data/processed/
     stats = Stats()
     chunks: list[str] = []
-    metadata: list[dict[str, Any]] = []
+    chunk_indexes = {"bm25": [], "chroma": {"delete": [], "new": []}}
+    chunk_metadatas: dict[str, dict[str, Any]] = {}
+
+    try:
+        if chunks_filepath.exists():
+            with open(chunks_filepath, "r") as f:
+                chunk_metadatas = json.load(f)
+
+            if not isinstance(chunk_metadatas, dict):
+                raise SchemaInvalidJSONRootError(
+                    expected=dict, context=chunks_filepath
+                )
+    except json.JSONDecodeError as e:
+        raise SchemaInvalidJSONFormatError(
+            context=chunks_filepath,
+            lineno=e.lineno,
+        ) from e
 
     filepaths: list[str] = __get_filepaths(path, exts, recursive=True)
+    unique_id: int = 0
     for filepath in tqdm(filepaths, desc="Processing documents"):
+        file_id: str = md5sum(filepath)
+        file_hash: str = file_md5sum(filepath)
+
+        """
+        {
+            "extensions": list[str], // verification des extensions a faire peter en base
+            "chunk_size": int, // faire peter toute la base et regenerer tous les chunks
+            "files": {
+                "file_id": {
+                    "hash": "file_hash",
+                    "chunks": ["chunk_id_1", ...]
+                }
+            }
+        }
+        """
+
+        # verifier si le ficher est dans le manifest et si il a change
+        # meme hash :
+        # ? ajouter le chunks uniquement dans bm25
+        # pas meme hash :
+        # ? ajouter tous les chunks du manifest[file_id] dans chroma['delete']
+        #   et regenerer les nouveau chunks dans chroma['new']
+
         try:
             with open(filepath, "r") as f:
                 document: str = f.read()
@@ -90,18 +151,32 @@ def entrypoint_index(
         start_index = 0
         for chunk in document_chunks:
             chunk_length = len(chunk)
-            chunks.append(chunk)
-            metadata.append(
-                ChunkMetadata(
-                    **{
-                        "text": chunk,
-                        "file_path": filepath,
-                        "first_character_index": start_index,
-                        "last_character_index": start_index + chunk_length,
-                    }
-                ).model_dump()
+            chunk_start_index: int = start_index
+            chunk_end_index: int = start_index + chunk_length
+            chunk_id: str = (
+                f"chunk_{file_id}_{chunk_start_index}_{chunk_end_index}"
             )
+            chunk_hash: str = md5sum(chunk)
+            if (
+                chunk_id in chunk_metadatas
+                and chunk_metadatas[chunk_id].get("hash", "") == chunk_hash
+            ):
+                continue
+
+            chunks.append(chunk)
+            chunk_indexes["bm25"].append({"id": chunk_id})
+            chunk_indexes["chroma"].append(chunk_id)
+            chunk_metadatas[chunk_id] = ChunkMetadata(
+                **{
+                    "text": chunk,
+                    "hash": chunk_hash,
+                    "file_path": filepath,
+                    "first_character_index": chunk_start_index,
+                    "last_character_index": chunk_end_index,
+                }
+            ).model_dump()
             start_index += chunk_length
+            unique_id += 1
 
         ext = get_extension(filepath)
 
@@ -117,9 +192,30 @@ def entrypoint_index(
     logger.info(f"Pre-indexing stats: {stats}")
 
     chunk_tokens = bm25s.tokenize(chunks)
-    retriever = bm25s.BM25(corpus=metadata)
+    retriever = bm25s.BM25(corpus=chunk_indexes.get("bm25"))
     retriever.index(chunk_tokens)
-    retriever.save(index_dirpath)
+    retriever.save(bm25_dirpath)
+
+    client = chromadb.PersistentClient(path=str(chroma_dirpath))
+    embedding_function = (
+        embedding_functions.SentenceTransformerEmbeddingFunction(
+            model_name="all-MiniLM-L6-v2"
+        )
+    )
+    collection = client.get_or_create_collection(name="chunks")
+
+    chroma_indexes = chunk_indexes.get("chroma", [])
+    for i in range(0, len(chunks), MAX_BATCH_SIZE):
+        batch_chunks = chunks[i : i + MAX_BATCH_SIZE]
+        batch_ids = chroma_indexes[i : i + MAX_BATCH_SIZE]
+
+        collection.upsert(
+            embeddings=embedding_function(batch_chunks), ids=batch_ids
+        )
+
     stats.save(stats_filepath)
+
+    with open(chunks_filepath, "w") as f:
+        json.dump(chunk_metadatas, f)
 
     logger.info("Indexing complete.")

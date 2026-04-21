@@ -23,8 +23,12 @@ logger = logging.getLogger(__file__)
 DEFAULT_INDEX_PATH: str = "vllm-0.10.1"
 
 PROCESSED_DIR: Path = Path("data/processed")
+
+BM25_DIRPATH: Path = PROCESSED_DIR / "bm25_index"
+CHROMA_DIRPATH: Path = PROCESSED_DIR / "chroma_index"
+
 STATS_FILEPATH: Path = PROCESSED_DIR / "stats.dat"
-INDEX_DIRPATH: Path = PROCESSED_DIR / "bm25_index"
+CHUNK_FILEPATH: Path = PROCESSED_DIR / "chunks.json"
 
 
 class App:
@@ -34,7 +38,7 @@ class App:
     def index(
         self,
         path: str = DEFAULT_INDEX_PATH,
-        extensions: tuple | str = ("*"),
+        extensions: str = "*",
         chunk_size: int = 2000,
         verbose: int = 0,
     ) -> None:
@@ -46,8 +50,10 @@ class App:
             path=Path(path),
             extensions=extensions,
             chunk_size=chunk_size,
-            index_dirpath=INDEX_DIRPATH,
+            bm25_dirpath=BM25_DIRPATH,
+            chroma_dirpath=CHROMA_DIRPATH,
             stats_filepath=STATS_FILEPATH,
+            chunks_filepath=CHUNK_FILEPATH,
         )
 
     def search(
@@ -69,7 +75,7 @@ class App:
         entrypoint_search(
             query=query,
             k=k,
-            index_dirpath=INDEX_DIRPATH,
+            index_dirpath=BM25_DIRPATH,
             stats_filepath=STATS_FILEPATH,
         )
 

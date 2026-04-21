@@ -6,14 +6,12 @@ from pydantic import (
     validate_call,
 )
 
-from src.exceptions.storage import (
-    StorageDirNotFoundError,
-    StorageFileNotFoundError,
-    StorageNotADirectoryError,
-    StorageNotAFileError,
-)
 from src.models.chunk import ChunkMetadata
 from src.models.stats import Stats
+from src.utils.path_util import (
+    ensure_valide_dirpath,
+    ensure_valide_filepath,
+)
 
 logger = logging.getLogger(__file__)
 
@@ -25,15 +23,8 @@ def entrypoint_search(
     index_dirpath: Path = Path("data/processed/bm25_index"),
     stats_filepath: Path = Path("data/processed/stats.dat"),
 ) -> None:
-    if not stats_filepath.exists():
-        raise StorageFileNotFoundError(stats_filepath)
-    if not stats_filepath.is_file():
-        raise StorageNotAFileError(stats_filepath)
-
-    if not index_dirpath.exists():
-        raise StorageDirNotFoundError(index_dirpath)
-    if not index_dirpath.is_dir():
-        raise StorageNotADirectoryError(index_dirpath)
+    ensure_valide_filepath(stats_filepath)
+    ensure_valide_dirpath(index_dirpath)
 
     stats = Stats.load(stats_filepath)
     print(stats)
