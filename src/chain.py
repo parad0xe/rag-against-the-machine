@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import os
 from typing import Any
 
 from langchain_text_splitters import Language, RecursiveCharacterTextSplitter
 
+from src.utils.path_util import get_extension
 
-class TextSplitter(RecursiveCharacterTextSplitter):
+
+class CustomTextSplitter(RecursiveCharacterTextSplitter):
     _EXTENSION_TO_LANGUAGE = {
         ".cpp": Language.CPP,
         ".hpp": Language.CPP,
@@ -56,7 +57,9 @@ class TextSplitter(RecursiveCharacterTextSplitter):
     }
 
     @classmethod
-    def from_extension(cls, extension: str, **kwargs: Any) -> TextSplitter:
+    def from_extension(
+        cls, extension: str, **kwargs: Any
+    ) -> CustomTextSplitter:
         if not extension.startswith("."):
             extension = f".{extension}"
         extension = extension.lower()
@@ -67,8 +70,8 @@ class TextSplitter(RecursiveCharacterTextSplitter):
         return cls(language, **kwargs)
 
     @classmethod
-    def from_filename(cls, filename: str, **kwargs: Any) -> TextSplitter:
-        _, ext = os.path.splitext(filename)
+    def from_filename(cls, filename: str, **kwargs: Any) -> CustomTextSplitter:
+        ext = get_extension(filename)
         return cls.from_extension(ext, **kwargs)
 
     def __init__(self, language: Language | None, **kwargs: Any) -> None:
