@@ -9,6 +9,7 @@ dependencies = [
     "fire>=0.7.1",
     "langchain>=1.2.15",
     "langchain-text-splitters>=1.1.1",
+    "light-embed>=1.0.8",
     "pydantic>=2.13.2",
     "sentence-transformers>=5.4.1",
     "tqdm>=4.67.3",

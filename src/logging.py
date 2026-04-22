@@ -2,15 +2,12 @@ from __future__ import annotations
 
 import logging
 import logging.config
+from pathlib import Path
 
 
 class LoggingSystem:
-    """
-    System-wide logging configuration and initialization.
-
-    Attributes:
-        CONFIG: Dictionary defining formatters, handlers, and loggers.
-    """
+    _ROOT_PACKAGE = str(Path(__name__).parent.absolute())
+    ALLOWED_NAMESPACES = (_ROOT_PACKAGE, "__main__")
 
     CONFIG = {
         "version": 1,
@@ -31,11 +28,9 @@ class LoggingSystem:
                 "formatter": "standard",
             },
         },
-        "loggers": {
-            "": {
-                "handlers": ["console"],
-                "level": logging.ERROR,
-            },
+        "root": {
+            "handlers": ["console"],
+            "level": logging.ERROR,
         },
     }
 
@@ -44,34 +39,24 @@ class LoggingSystem:
         cls: type[LoggingSystem],
         verbose: int,
     ) -> None:
-        """
-        Configures the logging environment based on verbosity level.
-
-        Args:
-            args: Command-line arguments containing the verbose count.
-        """
         level: int = cls._get_level(verbose)
 
-        logging.config.dictConfig(LoggingSystem.CONFIG)
+        logging.config.dictConfig(cls.CONFIG)
 
         loggers = [
             logging.getLogger(name) for name in logging.root.manager.loggerDict
         ]
+
         for logger in loggers:
-            logger.setLevel(level)
+            if any(
+                logger.name.startswith(ns) for ns in cls.ALLOWED_NAMESPACES
+            ):
+                logger.setLevel(level)
+            else:
+                logger.setLevel(logging.ERROR)
 
     @staticmethod
     def _get_level(verbose: int) -> int:
-        """
-        Maps verbose count to standard logging levels.
-
-        Args:
-            verbose: Integer representing the verbosity level.
-
-        Returns:
-            The corresponding logging level constant.
-        """
-
         match verbose:
             case 0:
                 return logging.ERROR

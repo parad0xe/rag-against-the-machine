@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+from typing import Iterable
 
 import fire
 from pydantic import (
@@ -30,6 +31,11 @@ CHROMA_DIRPATH: Path = PROCESSED_DIR / "chroma_index"
 STATS_FILEPATH: Path = PROCESSED_DIR / "stats.dat"
 CHUNK_FILEPATH: Path = PROCESSED_DIR / "chunks.json"
 
+LLM_MODEL: str = (
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    # "all-MiniLM-L6-v2"
+)
+
 
 class App:
     def __init__(self):
@@ -38,11 +44,15 @@ class App:
     def index(
         self,
         path: str = DEFAULT_INDEX_PATH,
-        extensions: str = "*",
+        extensions: str | tuple = "*",
         chunk_size: int = 2000,
+        semantic: bool = False,
         verbose: int = 0,
     ) -> None:
         verbose = TypeAdapter(NonNegativeInt).validate_python(verbose)
+        if not isinstance(extensions, str):
+            if isinstance(extensions, Iterable):
+                extensions = ",".join(extensions)
 
         self._init_logging(verbose)
 
@@ -54,6 +64,8 @@ class App:
             chroma_dirpath=CHROMA_DIRPATH,
             stats_filepath=STATS_FILEPATH,
             chunks_filepath=CHUNK_FILEPATH,
+            embedding_model_name=LLM_MODEL,
+            semantic=semantic,
         )
 
     def search(

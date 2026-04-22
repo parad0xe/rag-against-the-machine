@@ -7,8 +7,9 @@ from typing import Any
 
 import bm25s
 import chromadb
-from chromadb.utils import embedding_functions
+from chromadb.config import Settings
 from pydantic import PositiveInt, validate_call
+from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
 from src.chain import CustomTextSplitter
@@ -19,6 +20,7 @@ from src.exceptions.schema import (
 )
 from src.exceptions.storage import StorageDirNotFoundError
 from src.models.chunk import ChunkMetadata
+from src.models.manifest import CachedFile, Manifest
 from src.models.stats import Stats
 from src.utils.common_util import file_md5sum, md5sum, pluralize
 from src.utils.path_util import get_extension
@@ -26,7 +28,7 @@ from src.utils.path_util import get_extension
 logger = logging.getLogger(__file__)
 
 
-MAX_BATCH_SIZE = 5000
+MAX_BATCH_SIZE = 32
 
 
 def __get_filepaths(
@@ -52,14 +54,6 @@ def __get_filepaths(
     return filepaths
 
 
-def manifest_retrieve(filepath: str) -> dict[str, Any]:
-    return {}
-
-
-def manifest_save(filepath: str, manifest: dict[str, Any]) -> None:
-    pass
-
-
 @validate_call()
 def entrypoint_index(
     path: Path = Path("vllm-0.10.1"),
@@ -70,10 +64,11 @@ def entrypoint_index(
     stats_filepath: Path = Path("data/processed/stats.dat"),
     chunks_filepath: Path = Path("data/processed/chunks.json"),
     manifest_filepath: Path = Path("data/processed/manifest.json"),
+    embedding_model_name: str = (
+        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    ),
+    semantic: bool = False,
 ) -> None:
-    # TD: se renseigner sur chromadb
-    # TD: se renseigner sur langchain (smart chunking)
-
     if not os.path.exists(path):
         raise StorageDirNotFoundError(path)
 
@@ -81,17 +76,10 @@ def entrypoint_index(
     exts = ["*" if "*" in ext else ext for ext in exts if ext]
     if "*" in exts:
         exts = ["*"]
-    # 0. [ok] discover useful repository files
-    # 1. [ok] load documents with langchain loaders
-    # 2. [ok] split documents with a strategy depending on file type
-    #    - python code splitter
-    #    - markdown/text splitter
-    # 3. [ok] convert split documents into internal chunks with:
-    #    file_path, first_character_index, last_character_index, content
-    # 4. build a BM25 index with bm25s from chunk contents
-    # 5. save chunks and bm25 index under data/processed/
+
     stats = Stats()
     chunks: list[str] = []
+    chunks_for_chroma: list[str] = []
     chunk_indexes = {"bm25": [], "chroma": {"delete": [], "new": []}}
     chunk_metadatas: dict[str, dict[str, Any]] = {}
 
@@ -110,31 +98,18 @@ def entrypoint_index(
             lineno=e.lineno,
         ) from e
 
+    manifest: Manifest = Manifest.load_from_file(
+        manifest_filepath, embedding_model_name, chunk_size
+    )
+    expired_chunk_ids = manifest.sync(exts)
+    chunk_indexes["chroma"]["delete"] += expired_chunk_ids
+
     filepaths: list[str] = __get_filepaths(path, exts, recursive=True)
-    unique_id: int = 0
     for filepath in tqdm(filepaths, desc="Processing documents"):
         file_id: str = md5sum(filepath)
         file_hash: str = file_md5sum(filepath)
-
-        """
-        {
-            "extensions": list[str], // verification des extensions a faire peter en base
-            "chunk_size": int, // faire peter toute la base et regenerer tous les chunks
-            "files": {
-                "file_id": {
-                    "hash": "file_hash",
-                    "chunks": ["chunk_id_1", ...]
-                }
-            }
-        }
-        """
-
-        # verifier si le ficher est dans le manifest et si il a change
-        # meme hash :
-        # ? ajouter le chunks uniquement dans bm25
-        # pas meme hash :
-        # ? ajouter tous les chunks du manifest[file_id] dans chroma['delete']
-        #   et regenerer les nouveau chunks dans chroma['new']
+        file_ext: str = get_extension(filepath)
+        file_chunk_ids: list[str] = []
 
         try:
             with open(filepath, "r") as f:
@@ -142,14 +117,30 @@ def entrypoint_index(
         except UnicodeDecodeError:
             continue
 
-        document_chunks = CustomTextSplitter.from_filename(
+        file_chunks = CustomTextSplitter.from_filename(
             filepath,
             chunk_size=chunk_size,
             add_start_index=True,
         ).split_text(document)
 
+        cached_ext: dict = (
+            manifest.files_by_ext[file_ext]
+            if file_ext in manifest.files_by_ext
+            else {}
+        )
+        cached_file: CachedFile | None = (
+            cached_ext[file_id] if file_id in cached_ext else None
+        )
+        file_require_update = True
+        if cached_file:
+            if cached_file.filehash != file_hash:
+                chunk_indexes["chroma"]["delete"] += cached_file.chunk_ids
+                file_require_update = True
+            else:
+                file_require_update = False
+
         start_index = 0
-        for chunk in document_chunks:
+        for chunk in file_chunks:
             chunk_length = len(chunk)
             chunk_start_index: int = start_index
             chunk_end_index: int = start_index + chunk_length
@@ -157,15 +148,9 @@ def entrypoint_index(
                 f"chunk_{file_id}_{chunk_start_index}_{chunk_end_index}"
             )
             chunk_hash: str = md5sum(chunk)
-            if (
-                chunk_id in chunk_metadatas
-                and chunk_metadatas[chunk_id].get("hash", "") == chunk_hash
-            ):
-                continue
 
-            chunks.append(chunk)
-            chunk_indexes["bm25"].append({"id": chunk_id})
-            chunk_indexes["chroma"].append(chunk_id)
+            file_chunk_ids.append(chunk_id)
+            chunks.append(chunk_id)
             chunk_metadatas[chunk_id] = ChunkMetadata(
                 **{
                     "text": chunk,
@@ -176,46 +161,91 @@ def entrypoint_index(
                 }
             ).model_dump()
             start_index += chunk_length
-            unique_id += 1
 
-        ext = get_extension(filepath)
+        if not cached_file:
+            manifest.files_by_ext.setdefault(file_ext, {})
+
+        manifest.files_by_ext[file_ext][file_id] = CachedFile(
+            **{
+                "filepath": filepath,
+                "filehash": file_hash,
+                "chunk_ids": file_chunk_ids,
+            }
+        )
+        chunk_indexes["bm25"].append(
+            {"id": chunk_id for chunk_id in file_chunk_ids}
+        )
+        if (file_require_update and semantic) or not chroma_dirpath.exists():
+            chunk_indexes["chroma"]["new"] += file_chunk_ids
+            chunks_for_chroma += file_chunks
 
         stats.num_documents += 1
-        stats.num_document_by_exts[ext] = (
-            stats.num_document_by_exts.get(ext, 0) + 1
+        stats.num_document_by_exts[file_ext] = (
+            stats.num_document_by_exts.get(file_ext, 0) + 1
         )
 
     if not chunks:
         raise NoDocumentError(path)
 
     stats.num_chunks = len(chunks)
+    stats.save(stats_filepath)
+
     logger.info(f"Pre-indexing stats: {stats}")
+    logger.info(stats)
 
     chunk_tokens = bm25s.tokenize(chunks)
-    retriever = bm25s.BM25(corpus=chunk_indexes.get("bm25"))
+    retriever = bm25s.BM25(corpus=chunk_indexes["bm25"])
     retriever.index(chunk_tokens)
     retriever.save(bm25_dirpath)
 
-    client = chromadb.PersistentClient(path=str(chroma_dirpath))
-    embedding_function = (
-        embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name="all-MiniLM-L6-v2"
-        )
-    )
-    collection = client.get_or_create_collection(name="chunks")
-
-    chroma_indexes = chunk_indexes.get("chroma", [])
-    for i in range(0, len(chunks), MAX_BATCH_SIZE):
-        batch_chunks = chunks[i : i + MAX_BATCH_SIZE]
-        batch_ids = chroma_indexes[i : i + MAX_BATCH_SIZE]
-
-        collection.upsert(
-            embeddings=embedding_function(batch_chunks), ids=batch_ids
+    chroma_indexes = chunk_indexes["chroma"]["new"]
+    chroma_indexes_delete = chunk_indexes["chroma"]["delete"]
+    if len(chroma_indexes) > 0 and semantic:
+        client = chromadb.PersistentClient(
+            path=str(chroma_dirpath),
+            settings=Settings(
+                anonymized_telemetry=False,
+            ),
         )
 
-    stats.save(stats_filepath)
+        model = SentenceTransformer(embedding_model_name)
+        collection = client.get_or_create_collection(name="chunks")
+
+        logger.debug("Embedding model device: %s", model.device)
+
+        if expired_chunk_ids:
+            collection.delete(ids=chunk_indexes["chroma"]["delete"])
+            logger.info(f"{len(expired_chunk_ids)} deleted chunks.")
+
+        for i in tqdm(range(0, len(chunks_for_chroma), MAX_BATCH_SIZE)):
+            batch_chunks = chunks_for_chroma[i : i + MAX_BATCH_SIZE]
+            batch_ids = chroma_indexes[i : i + MAX_BATCH_SIZE]
+
+            embeddings = model.encode(
+                batch_chunks,
+                convert_to_numpy=True,
+            )
+            collection.upsert(embeddings=embeddings.tolist(), ids=batch_ids)
+    elif len(chroma_indexes_delete) and semantic:
+        client = chromadb.PersistentClient(
+            path=str(chroma_dirpath),
+            settings=Settings(
+                anonymized_telemetry=False,
+            ),
+        )
+        collection = client.get_or_create_collection(name="chunks")
+
+        if expired_chunk_ids:
+            collection.delete(ids=chunk_indexes["chroma"]["delete"])
+            logger.info(f"{len(expired_chunk_ids)} deleted chunks.")
+
+    with open(manifest_filepath, "w") as f:
+        json.dump(manifest.model_dump(mode="json"), f)
 
     with open(chunks_filepath, "w") as f:
         json.dump(chunk_metadatas, f)
+
+    print("DELETE:", len(chunk_indexes["chroma"]["delete"]))
+    print("NEW:", len(chunk_indexes["chroma"]["new"]))
 
     logger.info("Indexing complete.")

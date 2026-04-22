@@ -4,6 +4,7 @@
 *.zip
 vllm*
 data/
+.cache
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
@@ -50,7 +51,6 @@ htmlcov/
 .nox/
 .coverage
 .coverage.*
-.cache
 nosetests.xml
 coverage.xml
 *.cover
