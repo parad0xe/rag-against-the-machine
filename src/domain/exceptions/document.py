@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.exceptions.base import RagError
+from .base import RagError
 
 
 class DocumentError(RagError):

@@ -5,18 +5,16 @@ from pathlib import Path
 from typing import Iterable
 
 import fire
+from fire.core import FireExit
 from pydantic import (
     NonNegativeInt,
     TypeAdapter,
     ValidationError,
 )
 
-from src.entrypoints.index import entrypoint_index
-from src.entrypoints.search import entrypoint_search
-from src.exceptions.base import RagError
-from src.exceptions.schema import (
-    SchemaValidationError,
-)
+from src.commands.index import entrypoint_index
+from src.domain.exceptions.base import RagError
+from src.domain.exceptions.schema import SchemaValidationError
 from src.logging import LoggingSystem
 
 logger = logging.getLogger(__file__)
@@ -38,13 +36,13 @@ LLM_MODEL: str = (
 
 
 class App:
-    def __init__(self):
+    def __init__(self) -> None:
         os.makedirs(PROCESSED_DIR, exist_ok=True)
 
     def index(
         self,
         path: str = DEFAULT_INDEX_PATH,
-        extensions: str | tuple = "*",
+        extensions: str | tuple[str] = "*",
         chunk_size: int = 2000,
         semantic: bool = False,
         verbose: int = 0,
@@ -57,16 +55,25 @@ class App:
         self._init_logging(verbose)
 
         entrypoint_index(
-            path=Path(path),
+            repositories=[Path(path)],
             extensions=extensions,
             chunk_size=chunk_size,
             bm25_dirpath=BM25_DIRPATH,
             chroma_dirpath=CHROMA_DIRPATH,
-            stats_filepath=STATS_FILEPATH,
-            chunks_filepath=CHUNK_FILEPATH,
             embedding_model_name=LLM_MODEL,
-            semantic=semantic,
+            with_semantic=semantic,
         )
+        # entrypoint_index(
+        #    path=Path(path),
+        #    extensions=extensions,
+        #    chunk_size=chunk_size,
+        #    bm25_dirpath=BM25_DIRPATH,
+        #    chroma_dirpath=CHROMA_DIRPATH,
+        #    stats_filepath=STATS_FILEPATH,
+        #    chunks_filepath=CHUNK_FILEPATH,
+        #    embedding_model_name=LLM_MODEL,
+        #    semantic=semantic,
+        # )
 
     def search(
         self,
@@ -84,12 +91,12 @@ class App:
 
         self._init_logging(verbose)
 
-        entrypoint_search(
-            query=query,
-            k=k,
-            index_dirpath=BM25_DIRPATH,
-            stats_filepath=STATS_FILEPATH,
-        )
+        # entrypoint_search(
+        #    query=query,
+        #    k=k,
+        #    index_dirpath=BM25_DIRPATH,
+        #    stats_filepath=STATS_FILEPATH,
+        # )
 
     def search_dataset(self, verbose: int = 0) -> None:
         """
@@ -143,12 +150,14 @@ def main() -> None:
             file=sys.stderr,
         )
         sys.exit(1)
-    except BaseException as e:
+    except FireExit:
+        sys.exit(2)
+    except Exception as e:
         print(
             f"[{e.__class__.__name__}] An unexpected error occurred: {e}",
             file=sys.stderr,
         )
-        sys.exit(2)
+        sys.exit(3)
 
 
 if __name__ == "__main__":

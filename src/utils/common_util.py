@@ -31,3 +31,11 @@ def file_md5sum(filepath: str) -> str:
         for chunk in iter(lambda: f.read(4096), b""):
             hasher.update(chunk)
     return hasher.hexdigest()
+
+
+def generate_identity(
+    identity: list[str | int | bool] | None = None,
+) -> str:
+    if not identity:
+        return ""
+    return md5sum("_".join([str(v) for v in identity]))

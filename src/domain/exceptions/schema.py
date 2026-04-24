@@ -3,7 +3,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from src.exceptions.base import RagError
+from .base import RagError
 
 
 class SchemaError(RagError):

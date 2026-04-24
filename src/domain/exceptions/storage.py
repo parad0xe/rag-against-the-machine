@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional, Union
 
-from src.exceptions.base import RagError
+from .base import RagError
 
 
 class StorageError(RagError):
