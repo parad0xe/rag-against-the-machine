@@ -3,10 +3,9 @@ import logging
 from pathlib import Path
 from typing import Any
 
-
 from src.domain.models.document import Document, DocumentStatus
 from src.infrastructure.stores.base import BaseStore
-from src.utils.path_util import readfile
+from src.utils.path_util import file_write_json, readfile
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +18,33 @@ class RawChunkStore(BaseStore):
     def __init__(self, filepath: Path, enable: bool = True) -> None:
         super().__init__(filepath.parent, enable)
         self._filepath = filepath
+        self._cache: dict | None = None
+
+    def get_items(self, chunk_ids: list[str]) -> dict[str, Any]:
+        if not self.enable or not self._filepath.exists():
+            return {}
+
+        import json
+
+        from src.utils.path_util import readfile
+
+        if self._cache is None:
+            content = readfile(self._filepath, ignore_unicode_error=True)
+            if not content:
+                return {}
+            try:
+                self._cache = json.loads(content)
+            except json.JSONDecodeError:
+                return {}
+
+        if self._cache is None:
+            return {}
+
+        return {
+            chunk_id: self._cache[chunk_id]
+            for chunk_id in chunk_ids
+            if chunk_id in self._cache
+        }
 
     def add(self, document: Document, status: DocumentStatus) -> None:
         if status == DocumentStatus.NOTHING_TO_DO:
@@ -60,9 +86,7 @@ class RawChunkStore(BaseStore):
                 for chunk_id, metadata in doc.chunk_metadatas.items():
                     data[chunk_id] = metadata
 
-        self._filepath.parent.mkdir(parents=True, exist_ok=True)
-        with open(self._filepath, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+        file_write_json(self._filepath, data)
 
         logger.info(
             f"[{self.__class__.__name__}] Saved {len(data)} chunks to "

@@ -9,8 +9,17 @@ class BaseStore(ABC):
     @abstractmethod
     def name(self) -> str: ...
 
-    def __init__(self, dirpath: Path, enable: bool = True) -> None:
+    @abstractmethod
+    def commit(self, require_reset_before: bool) -> None: ...
+
+    def __init__(
+        self,
+        dirpath: Path,
+        enable: bool = True,
+        weight: float = 1.0,
+    ) -> None:
         self.enable: bool = enable
+        self.weight: float = weight
 
         self._dirpath: Path = dirpath
         self._delete_chunk_ids: set[str] = set()
@@ -29,8 +38,11 @@ class BaseStore(ABC):
     def exists(self) -> bool:
         return self._dirpath.exists()
 
-    @abstractmethod
-    def commit(self, require_reset_before: bool) -> None: ...
+    def search(self, query: str, k: int) -> list[str] | None:
+        return None
+
+    def get_items(self, chunk_ids: list[str]) -> dict[str, dict] | None:
+        return None
 
     def _clear_state(self) -> None:
         self._delete_chunk_ids.clear()

@@ -10,6 +10,7 @@ dependencies = [
     "langchain>=1.2.15",
     "langchain-text-splitters>=1.1.1",
     "pydantic>=2.13.2",
+    "rich>=15.0.0",
     "sacremoses>=0.1.1",
     "sentence-transformers>=5.4.1",
     "sentencepiece>=0.2.1",

@@ -1,39 +1,25 @@
-import json
 import logging
 from pathlib import Path
 
-import bm25s
-import chromadb
-from chromadb.config import Settings
 from pydantic import (
     validate_call,
 )
-from sentence_transformers import SentenceTransformer
+from rich.console import Console
+from rich.panel import Panel
+from rich.rule import Rule
+from rich.text import Text
 from transformers import pipeline
 
-from src.utils.common_util import compute_rrf
+from src.infrastructure.retriever import Retriever
+from src.infrastructure.stores.bm25 import BM25Store
+from src.infrastructure.stores.chroma import ChromaStore
+from src.infrastructure.stores.raw import RawChunkStore
 from src.utils.path_util import ensure_valid_dirpath
 
 logger = logging.getLogger(__file__)
 
 
-# TRANSLATION_MODEL: str = "paraphrase-multilingual-MiniLM-L12-v2"
 TRANSLATION_MODEL: str = "Helsinki-NLP/opus-mt-mul-en"
-
-
-class QueryTranslator:
-    def __init__(self) -> None:
-        self.translator = pipeline(
-            "translation",
-            model=TRANSLATION_MODEL,
-            src_lang="fra_Latn",
-            tgt_lang="eng_Latn",
-            device="cpu",
-        )
-
-    def translate_fr_to_en(self, query: str) -> str:
-        result = self.translator(query, max_length=512)
-        return str(result[0]["translation_text"])
 
 
 class Translator:
@@ -66,84 +52,73 @@ def entrypoint_search(
         "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
     ),
 ) -> None:
-    # Retriever(
-    #    stores=[
-    #        BM25Store(bm25_dirpath, enable=True),
-    #        ChromaStore(
-    #            chroma_dirpath,
-    #            embedding_model_name,
-    #            enable=with_semantic,
-    #        ),
-    #    ]
-    # )
+    console = Console()
+    console.print()
+
+    console.print(
+        Rule(
+            title=f"[bold cyan]🔎 Search Results for: '{query}'[/]",
+            style="cyan",
+        )
+    )
+
+    retriever = Retriever(
+        stores=[
+            BM25Store(bm25_dirpath, enable=True, weight=0.70),
+            ChromaStore(
+                chroma_dirpath,
+                embedding_model_name,
+                enable=True,  # faire en sorte de selectionner en fonction 'with semantic' dans le manifest
+                weight=0.30,
+            ),
+            RawChunkStore(chunks_filepath, enable=True),
+        ]
+    )
     original_query = query
     query = Translator().translate_to_english(query)
+
+    if original_query != query:
+        console.print(
+            f"[italic magenta]Translated to: '{query}'[/]", justify="center"
+        )
+    console.print()
 
     ensure_valid_dirpath(bm25_dirpath)
     ensure_valid_dirpath(chroma_dirpath)
 
-    # --- 1. RECHERCHE BM25 (Mots-clés) ---
-    logger.info(f"Querying BM25 index from '{bm25_dirpath}'")
-    bm25_retriever = bm25s.BM25.load(bm25_dirpath, load_corpus=True)
+    logger.info(f"Executing hybrid search for query: '{query}'")
+    results = retriever.search(query, k=k)
 
-    corpus_size = len(bm25_retriever.corpus) if bm25_retriever.corpus else 0
-    actual_k = min(k, corpus_size)
+    if not results:
+        console.print("[bold red]No results found.[/]\n")
+        return
 
-    bm25_ids: list[str] = []
-    if actual_k > 0:
-        query_tokens = bm25s.tokenize(query)
-        bm25_results, _ = bm25_retriever.retrieve(
-            query_tokens, k=actual_k, n_threads=1
+    for i, source in enumerate(results):
+        content = Text()
+        content.append("File     : ", style="bold magenta")
+        content.append(f"{source.file_path}\n", style="green")
+        content.append("Position : ", style="bold magenta")
+
+        # Regroupement des index sur une seule ligne avec une flèche
+        content.append(
+            f"Chars {source.first_character_index} ➔ {source.last_character_index}",
+            style="yellow",
         )
-        if bm25_results.shape[1] > 0:
-            bm25_ids = [doc.get("id") for doc in bm25_results[0]]
 
-    # --- 2. RECHERCHE CHROMA (Sémantique) ---
-    logger.info(f"Querying ChromaDB index from '{chroma_dirpath}'")
-    client = chromadb.PersistentClient(
-        path=str(chroma_dirpath),
-        settings=Settings(anonymized_telemetry=False),
+        panel = Panel(
+            content,
+            title=f"[bold yellow]Rank {i + 1}[/]",
+            title_align="left",
+            border_style="blue",
+        )
+        console.print(panel)
+
+    # Pied de page
+    console.print()
+    console.print(
+        Rule(
+            title=f"[bold cyan]Total results: {len(results)}[/]",
+            style="cyan",
+        )
     )
-    collection = client.get_or_create_collection(name="chunks")
-
-    model = SentenceTransformer(embedding_model_name)
-    query_embedding = model.encode(query, convert_to_numpy=True)
-
-    chroma_results = collection.query(
-        query_embeddings=[query_embedding.tolist()],
-        n_results=actual_k,
-    )
-    chroma_ids: list[str] = (
-        chroma_results["ids"][0] if chroma_results["ids"] else []
-    )
-
-    # --- 3. FUSION RRF ---
-    rrf_results = compute_rrf(bm25_ids, chroma_ids)
-    top_results = rrf_results[:k]
-
-    # --- 4. AFFICHAGE ---
-    chunks_data = {}
-    if chunks_filepath.exists():
-        with open(chunks_filepath, "r", encoding="utf-8") as f:
-            chunks_data = json.load(f)
-
-    print(
-        f"\n{'=' * 60}\n🔎 Hybrid Search Results for: '{query}'\n{'=' * 60}\n"
-    )
-
-    for i, (chunk_id, score) in enumerate(top_results):
-        print(f"🥇 Rank {i + 1} | RRF Score: {score:.4f} | ID: {chunk_id}")
-
-        if chunk_id in chunks_data:
-            chunk_meta = chunks_data[chunk_id]
-            file_path = chunk_meta.get("file_path", "Unknown")
-            text = chunk_meta.get("text", "").strip()
-
-            snippet = text
-
-            print(f"📄 File: {file_path}")
-            print(f"💬 Content:\n{snippet}\n")
-        else:
-            print("⚠️ Content: <No data found in chunks.json>\n")
-
-    print("=" * 60)
+    console.print()

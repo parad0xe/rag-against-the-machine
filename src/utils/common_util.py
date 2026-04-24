@@ -42,20 +42,38 @@ def generate_identity(
 
 
 def compute_rrf(
-    list_a: list[str],
-    list_b: list[str],
+    ranked_lists: list[tuple[list[str], float]],
     k: int = 60,
 ) -> list[tuple[str, float]]:
     scores: dict[str, float] = {}
 
-    for rank, doc_id in enumerate(list_a):
-        scores[doc_id] = scores.get(doc_id, 0.0) + 0.75 / (k + rank + 1)
-
-    for rank, doc_id in enumerate(list_b):
-        scores[doc_id] = scores.get(doc_id, 0.0) + 0.25 / (k + rank + 1)
+    for doc_list, weight in ranked_lists:
+        for rank, doc_id in enumerate(doc_list):
+            score = weight * (1.0 / (k + rank + 1))
+            scores[doc_id] = scores.get(doc_id, 0.0) + score
 
     sorted_results = sorted(
         scores.items(), key=lambda item: item[1], reverse=True
     )
 
     return sorted_results
+
+
+# def compute_rrf(
+#    list_a: list[str],
+#    list_b: list[str],
+#    k: int = 60,
+# ) -> list[tuple[str, float]]:
+#    scores: dict[str, float] = {}
+#
+#    for rank, chunk_id in enumerate(list_a):
+#        scores[chunk_id] = scores.get(chunk_id, 0.0) + 0.70 / (k + rank + 1)
+#
+#    for rank, chunk_id in enumerate(list_b):
+#        scores[chunk_id] = scores.get(chunk_id, 0.0) + 0.30 / (k + rank + 1)
+#
+#    sorted_results = sorted(
+#        scores.items(), key=lambda item: item[1], reverse=True
+#    )
+#
+#    return sorted_results

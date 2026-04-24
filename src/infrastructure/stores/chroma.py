@@ -1,8 +1,6 @@
 import logging
 from pathlib import Path
 
-import chromadb
-from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
@@ -23,10 +21,41 @@ class ChromaStore(BaseStore):
         embedding_model_name: str,
         batch_size: int = 32,
         enable: bool = True,
+        weight: float = 1.0,
     ) -> None:
-        super().__init__(dirpath, enable)
+        super().__init__(dirpath, enable, weight)
         self._embedding_model_name: str = embedding_model_name
         self._batch_size: int = batch_size
+        self._collection = None
+        self._model = None
+
+    def search(self, query: str, k: int) -> list[str]:
+        if not self.enable or not self._dirpath.exists():
+            return []
+
+        import chromadb
+        from chromadb.config import Settings
+
+        if self._collection is None:
+            client = chromadb.PersistentClient(
+                path=str(self._dirpath),
+                settings=Settings(anonymized_telemetry=False),
+            )
+            self._collection = client.get_or_create_collection(name="chunks")
+
+        if self._model is None:
+            self._model = SentenceTransformer(self._embedding_model_name)
+
+        query_embedding = self._model.encode(query, convert_to_numpy=True)
+        results = self._collection.query(
+            query_embeddings=[query_embedding.tolist()],
+            n_results=k,
+        )
+
+        if not results["ids"]:
+            return []
+
+        return results["ids"][0]
 
     def add(self, document: Document, status: DocumentStatus) -> None:
         if status == DocumentStatus.NOTHING_TO_DO:
@@ -42,6 +71,9 @@ class ChromaStore(BaseStore):
             f"{len(self._add_documents)} additions, "
             f"{len(self._delete_chunk_ids)} deletions."
         )
+
+        import chromadb
+        from chromadb.config import Settings
 
         self._dirpath.mkdir(parents=True, exist_ok=True)
         client = chromadb.PersistentClient(
@@ -69,6 +101,8 @@ class ChromaStore(BaseStore):
             )
 
         if self._add_documents:
+            from sentence_transformers import SentenceTransformer
+
             logger.info(
                 f"[{self.__class__.__name__}] Loading embedding model: "
                 f"'{self._embedding_model_name}'"

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pydantic import PositiveInt
 
-from src.infrastructure.indexers.indexer import Indexer
+from src.infrastructure.indexer import Indexer
 from src.infrastructure.manifest.manager import ManifestManager
 from src.infrastructure.manifest.storages.disk import ManifestDiskStorage
 from src.infrastructure.stores.bm25 import BM25Store
