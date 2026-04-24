@@ -1,11 +1,11 @@
 import logging
 
-from src.infrastructure.indexers.stores.base import BaseIndexStore
+from src.infrastructure.stores.base import BaseStore
 
 logger = logging.getLogger(__file__)
 
 
-class BM25IndexStore(BaseIndexStore):
+class BM25Store(BaseStore):
     @property
     def name(self) -> str:
         return "BM25"

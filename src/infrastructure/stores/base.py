@@ -4,7 +4,7 @@ from pathlib import Path
 from src.domain.models.document import Document, DocumentStatus
 
 
-class BaseIndexStore(ABC):
+class BaseStore(ABC):
     @property
     @abstractmethod
     def name(self) -> str: ...
@@ -24,9 +24,10 @@ class BaseIndexStore(ABC):
         self._add_documents.append(document)
 
     def delete(self, chunk_ids: set[str]) -> None:
-        # if not self.enable:
-        #    return
         self._delete_chunk_ids.update(chunk_ids)
+
+    def exists(self) -> bool:
+        return self._dirpath.exists()
 
     @abstractmethod
     def commit(self, require_reset_before: bool) -> None: ...

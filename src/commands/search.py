@@ -9,11 +9,50 @@ from pydantic import (
     validate_call,
 )
 from sentence_transformers import SentenceTransformer
+from transformers import pipeline
 
 from src.utils.common_util import compute_rrf
 from src.utils.path_util import ensure_valid_dirpath
 
 logger = logging.getLogger(__file__)
+
+
+# TRANSLATION_MODEL: str = "paraphrase-multilingual-MiniLM-L12-v2"
+TRANSLATION_MODEL: str = "Helsinki-NLP/opus-mt-mul-en"
+
+
+class QueryTranslator:
+    def __init__(self) -> None:
+        self.translator = pipeline(
+            "translation",
+            model=TRANSLATION_MODEL,
+            src_lang="fra_Latn",
+            tgt_lang="eng_Latn",
+            device="cpu",
+        )
+
+    def translate_fr_to_en(self, query: str) -> str:
+        result = self.translator(query, max_length=512)
+        return str(result[0]["translation_text"])
+
+
+class Translator:
+    def __init__(self) -> None:
+        self.translator = pipeline(
+            "translation",
+            model=TRANSLATION_MODEL,
+        )
+
+    def translate_to_english(self, text: str) -> str:
+        if not text.strip():
+            return ""
+
+        result = self.translator(
+            text,
+            max_length=512,
+        )
+
+        return str(result[0]["translation_text"])
 
 
 @validate_call()
@@ -27,7 +66,19 @@ def entrypoint_search(
         "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
     ),
 ) -> None:
-    Retriever(stores=[BM25Store(), ChromaStore()])
+    # Retriever(
+    #    stores=[
+    #        BM25Store(bm25_dirpath, enable=True),
+    #        ChromaStore(
+    #            chroma_dirpath,
+    #            embedding_model_name,
+    #            enable=with_semantic,
+    #        ),
+    #    ]
+    # )
+    original_query = query
+    query = Translator().translate_to_english(query)
+
     ensure_valid_dirpath(bm25_dirpath)
     ensure_valid_dirpath(chroma_dirpath)
 

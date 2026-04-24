@@ -6,11 +6,11 @@ from pathlib import Path
 from pydantic import PositiveInt
 
 from src.infrastructure.indexers.indexer import Indexer
-from src.infrastructure.indexers.stores.bm25 import BM25IndexStore
-from src.infrastructure.indexers.stores.chroma import ChromaIndexStore
-from src.infrastructure.indexers.stores.raw import RawChunkStore
 from src.infrastructure.manifest.manager import ManifestManager
 from src.infrastructure.manifest.storages.disk import ManifestDiskStorage
+from src.infrastructure.stores.bm25 import BM25Store
+from src.infrastructure.stores.chroma import ChromaStore
+from src.infrastructure.stores.raw import RawChunkStore
 from src.utils.path_util import parse_extensions
 
 logger = logging.getLogger(__file__)
@@ -48,8 +48,8 @@ def entrypoint_index(
         manifest_manager,
         extensions=exts,
         stores=[
-            BM25IndexStore(bm25_dirpath, enable=True),
-            ChromaIndexStore(
+            BM25Store(bm25_dirpath, enable=True),
+            ChromaStore(
                 chroma_dirpath,
                 embedding_model_name,
                 batch_size=BATCH_SIZE,

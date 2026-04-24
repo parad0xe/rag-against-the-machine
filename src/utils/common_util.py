@@ -49,10 +49,10 @@ def compute_rrf(
     scores: dict[str, float] = {}
 
     for rank, doc_id in enumerate(list_a):
-        scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank + 1)
+        scores[doc_id] = scores.get(doc_id, 0.0) + 0.75 / (k + rank + 1)
 
     for rank, doc_id in enumerate(list_b):
-        scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank + 1)
+        scores[doc_id] = scores.get(doc_id, 0.0) + 0.25 / (k + rank + 1)
 
     sorted_results = sorted(
         scores.items(), key=lambda item: item[1], reverse=True

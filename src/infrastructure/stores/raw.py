@@ -3,14 +3,15 @@ import logging
 from pathlib import Path
 from typing import Any
 
+
 from src.domain.models.document import Document, DocumentStatus
-from src.infrastructure.indexers.stores.base import BaseIndexStore
+from src.infrastructure.stores.base import BaseStore
 from src.utils.path_util import readfile
 
 logger = logging.getLogger(__name__)
 
 
-class RawChunkStore(BaseIndexStore):
+class RawChunkStore(BaseStore):
     @property
     def name(self) -> str:
         return "Raw"
@@ -23,6 +24,9 @@ class RawChunkStore(BaseIndexStore):
         if status == DocumentStatus.NOTHING_TO_DO:
             return
         super().add(document, status)
+
+    def exists(self) -> bool:
+        return super().exists() and self._filepath.exists()
 
     def commit(self, require_reset_before: bool) -> None:
         if not self.enable:

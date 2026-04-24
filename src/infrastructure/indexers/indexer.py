@@ -6,8 +6,8 @@ from tqdm import tqdm
 from src.domain.models.document import DocumentStatus
 from src.domain.models.manifest import Manifest
 from src.infrastructure.document.loader import load_document
-from src.infrastructure.indexers.stores.base import BaseIndexStore
 from src.infrastructure.manifest.manager import ManifestManager
+from src.infrastructure.stores.base import BaseStore
 from src.utils.path_util import ensure_valid_dirpath, get_filepaths
 
 logger = logging.getLogger(__file__)
@@ -18,10 +18,10 @@ class Indexer:
         self,
         manifest_manager: ManifestManager,
         extensions: list[str],
-        stores: list[BaseIndexStore],
+        stores: list[BaseStore],
     ) -> None:
         self._manifest_store: ManifestManager = manifest_manager
-        self._stores: list[BaseIndexStore] = stores
+        self._stores: list[BaseStore] = stores
         self._extensions: list[str] = extensions
         self._viewed_filepaths: set[Path] = set()
 

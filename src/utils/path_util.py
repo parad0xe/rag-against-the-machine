@@ -1,4 +1,3 @@
-import glob
 import json
 import logging
 import os
@@ -37,11 +36,15 @@ def get_filepaths(
 
     filepaths: list[str] = []
     for ext in extensions:
-        path = basepath
-        if recursive:
-            path = path / "**"
-        path = path / f"*.{ext}"
-        filepaths += glob.glob(str(path), recursive=recursive)
+        pattern = f"*.{ext}"
+
+        path_generator = (
+            basepath.rglob(pattern) if recursive else basepath.glob(pattern)
+        )
+
+        for path in path_generator:
+            if path.is_file():
+                filepaths.append(str(path))
 
     logger.info(
         f"{len(filepaths)} {pluralize('file', len(filepaths))} "
@@ -49,6 +52,22 @@ def get_filepaths(
     )
 
     return filepaths
+    # logger.info(f"Loading extensions: {extensions}")
+
+    # filepaths: list[str] = []
+    # for ext in extensions:
+    #    path = basepath
+    #    if recursive:
+    #        path = path / "**"
+    #    path = path / f"*.{ext}"
+    #    filepaths += glob.glob(str(path), recursive=recursive)
+
+    # logger.info(
+    #    f"{len(filepaths)} {pluralize('file', len(filepaths))} "
+    #    f"found for extensions {extensions}"
+    # )
+
+    # return filepaths
 
 
 def get_extension(filepath: str) -> str:

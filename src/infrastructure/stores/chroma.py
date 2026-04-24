@@ -7,12 +7,12 @@ from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
 from src.domain.models.document import Document, DocumentStatus
-from src.infrastructure.indexers.stores.base import BaseIndexStore
+from src.infrastructure.stores.base import BaseStore
 
 logger = logging.getLogger(__file__)
 
 
-class ChromaIndexStore(BaseIndexStore):
+class ChromaStore(BaseStore):
     @property
     def name(self) -> str:
         return "Chroma"
