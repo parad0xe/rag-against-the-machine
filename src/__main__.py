@@ -48,6 +48,7 @@ class App:
         verbose: int = 0,
     ) -> None:
         verbose = TypeAdapter(NonNegativeInt).validate_python(verbose)
+
         if not isinstance(extensions, str):
             if isinstance(extensions, Iterable):
                 extensions = ",".join(extensions)

@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 from src.domain.models.document import DocumentStatus
 from src.domain.models.manifest import Manifest
-from src.infrastructure.document.parser import DocumentParser
+from src.infrastructure.document.loader import load_document
 from src.infrastructure.indexers.stores.base import BaseIndexStore
 from src.infrastructure.manifest.manager import ManifestManager
 from src.utils.path_util import ensure_valide_dirpath, get_filepaths
@@ -96,9 +96,6 @@ class Indexer:
             self._extensions,
             recursive=True,
         )
-        document_parser = DocumentParser(
-            self._manifest_store.manifest.chunk_size
-        )
         for filepath in tqdm(filepaths, desc="Processing documents"):
             resolved_path = Path(filepath).resolve()
 
@@ -106,7 +103,10 @@ class Indexer:
                 continue
             self._viewed_filepaths.add(resolved_path)
 
-            document = document_parser.parse(resolved_path)
+            document = load_document(
+                resolved_path,
+                self._manifest_store.manifest.chunk_size,
+            )
             if not document:
                 continue
 

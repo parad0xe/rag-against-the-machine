@@ -73,6 +73,28 @@ class SchemaInvalidJSONRootError(SchemaError):
         super().__init__(f"{message}.")
 
 
+class SchemaJSONSerializationError(SchemaError):
+    """Error raised when data cannot be serialized to JSON."""
+
+    def __init__(
+        self,
+        reason: str,
+        context: str | Path | None = None,
+    ) -> None:
+        """
+        Initializes the serialization error.
+
+        Args:
+            reason: The specific serialization failure reason.
+            context: Information about where the error occurred.
+        """
+        message = f"Failed to serialize data to JSON ({reason})"
+        if context:
+            message += f" for '{context}'"
+
+        super().__init__(f"{message}.")
+
+
 class SchemaValidationError(SchemaError):
     """Error raised when data fails Pydantic validation checks."""
 

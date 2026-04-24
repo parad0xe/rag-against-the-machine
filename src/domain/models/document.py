@@ -2,7 +2,7 @@ from enum import Enum, auto
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.domain.models.chunk import ChunkMetadata
+from src.domain.models.chunk import Chunk
 
 
 class DocumentStatus(str, Enum):
@@ -23,4 +23,4 @@ class Document(BaseModel):
 
     chunks: list[str] = Field(default_factory=list)
     chunk_ids: list[str] = Field(default_factory=list)
-    chunk_metadatas: dict[str, ChunkMetadata] = Field(default_factory=dict)
+    chunk_metadatas: dict[str, Chunk] = Field(default_factory=dict)

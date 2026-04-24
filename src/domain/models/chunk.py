@@ -1,7 +1,7 @@
 from typing import TypedDict
 
 
-class ChunkMetadata(TypedDict):
+class Chunk(TypedDict):
     text: str
     hash: str
     file_path: str

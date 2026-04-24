@@ -1,7 +1,10 @@
 import glob
+import json
 import logging
 from pathlib import Path
+from typing import Any
 
+from src.domain.exceptions.schema import SchemaJSONSerializationError
 from src.domain.exceptions.storage import (
     StorageDirNotFoundError,
     StorageError,
@@ -84,3 +87,33 @@ def readfile(
     except OSError as e:
         raise StorageError(None, filepath) from e
     return document
+
+
+def file_write_json(
+    filepath: Path, data: list[Any] | dict[Any, Any] | str
+) -> None:
+    try:
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+    except PermissionError as e:
+        raise StorageFilePermissionError(filepath) from e
+    except OSError as e:
+        raise StorageError(None, filepath) from e
+
+    try:
+        str_json = (
+            data if isinstance(data, str) else json.dumps(data, indent=2)
+        )
+    except TypeError as e:
+        raise SchemaJSONSerializationError(
+            reason=str(e), context=filepath
+        ) from e
+
+    try:
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(str_json)
+    except FileNotFoundError as e:
+        raise StorageFileNotFoundError(filepath) from e
+    except PermissionError as e:
+        raise StorageFilePermissionError(filepath) from e
+    except OSError as e:
+        raise StorageError(None, filepath) from e

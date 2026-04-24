@@ -10,6 +10,7 @@ from src.infrastructure.indexers.stores.bm25 import BM25IndexStore
 from src.infrastructure.indexers.stores.chroma import ChromaIndexStore
 from src.infrastructure.indexers.stores.raw import RawChunkStore
 from src.infrastructure.manifest.manager import ManifestManager
+from src.infrastructure.manifest.storages.disk import ManifestDiskStorage
 from src.utils.path_util import parse_extensions
 
 logger = logging.getLogger(__file__)
@@ -30,13 +31,17 @@ def entrypoint_index(
     chunks_filepath: Path = Path("data/processed/chunks.json"),
     with_semantic: bool = False,
 ) -> None:
+    repositories = list({repo.resolve() for repo in repositories})
     exts: list[str] = parse_extensions(extensions)
+
     manifest_manager = ManifestManager(
-        manifest_filepath,
-        list(map(str, repositories)),
-        embedding_model_name,
-        chunk_size,
-        identity=[embedding_model_name, chunk_size, with_semantic],
+        storage=ManifestDiskStorage(
+            manifest_filepath,
+            repositories,
+            embedding_model_name,
+            chunk_size,
+            identity=[embedding_model_name, chunk_size, with_semantic],
+        )
     )
 
     indexer = Indexer(
@@ -54,8 +59,9 @@ def entrypoint_index(
         ],
     )
     indexer.sync()
-    for repository in manifest_manager.manifest.repositories:
-        indexer.index(Path(repository))
-    indexer.commit()
 
+    for repository in manifest_manager.manifest.repositories:
+        indexer.index(repository)
+
+    indexer.commit()
     manifest_manager.commit()
