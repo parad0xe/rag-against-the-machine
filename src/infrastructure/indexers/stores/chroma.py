@@ -1,6 +1,9 @@
 import logging
 from pathlib import Path
 
+import chromadb
+from chromadb.config import Settings
+from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
 from src.domain.models.document import Document, DocumentStatus
@@ -10,6 +13,10 @@ logger = logging.getLogger(__file__)
 
 
 class ChromaIndexStore(BaseIndexStore):
+    @property
+    def name(self) -> str:
+        return "Chroma"
+
     def __init__(
         self,
         dirpath: Path,
@@ -27,9 +34,6 @@ class ChromaIndexStore(BaseIndexStore):
         super().add(document, status)
 
     def commit(self, require_reset_before: bool) -> None:
-        if not self._enable:
-            return
-
         if not self._add_documents and not self._delete_chunk_ids:
             return
 
@@ -38,9 +42,6 @@ class ChromaIndexStore(BaseIndexStore):
             f"{len(self._add_documents)} additions, "
             f"{len(self._delete_chunk_ids)} deletions."
         )
-
-        import chromadb
-        from chromadb.config import Settings
 
         self._dirpath.mkdir(parents=True, exist_ok=True)
         client = chromadb.PersistentClient(
@@ -68,8 +69,6 @@ class ChromaIndexStore(BaseIndexStore):
             )
 
         if self._add_documents:
-            from sentence_transformers import SentenceTransformer
-
             logger.info(
                 f"[{self.__class__.__name__}] Loading embedding model: "
                 f"'{self._embedding_model_name}'"

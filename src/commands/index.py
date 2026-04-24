@@ -40,7 +40,7 @@ def entrypoint_index(
             repositories,
             embedding_model_name,
             chunk_size,
-            identity=[embedding_model_name, chunk_size, with_semantic],
+            identity=[embedding_model_name, chunk_size],
         )
     )
 

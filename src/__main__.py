@@ -13,6 +13,7 @@ from pydantic import (
 )
 
 from src.commands.index import entrypoint_index
+from src.commands.search import entrypoint_search
 from src.domain.exceptions.base import RagError
 from src.domain.exceptions.schema import SchemaValidationError
 from src.logging import LoggingSystem
@@ -30,8 +31,8 @@ STATS_FILEPATH: Path = PROCESSED_DIR / "stats.dat"
 CHUNK_FILEPATH: Path = PROCESSED_DIR / "chunks.json"
 
 LLM_MODEL: str = (
-    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    # "all-MiniLM-L6-v2"
+    # "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    "all-MiniLM-L6-v2"
 )
 
 
@@ -82,12 +83,13 @@ class App:
 
         self._init_logging(verbose)
 
-        # entrypoint_search(
-        #    query=query,
-        #    k=k,
-        #    index_dirpath=BM25_DIRPATH,
-        #    stats_filepath=STATS_FILEPATH,
-        # )
+        entrypoint_search(
+            query=query,
+            k=k,
+            embedding_model_name=LLM_MODEL,
+            bm25_dirpath=BM25_DIRPATH,
+            chunks_filepath=CHUNK_FILEPATH,
+        )
 
     def search_dataset(self, verbose: int = 0) -> None:
         """

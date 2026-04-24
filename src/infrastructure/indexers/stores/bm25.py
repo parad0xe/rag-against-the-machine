@@ -6,11 +6,15 @@ logger = logging.getLogger(__file__)
 
 
 class BM25IndexStore(BaseIndexStore):
+    @property
+    def name(self) -> str:
+        return "BM25"
+
     def delete(self, _: set[str]) -> None:
         pass
 
     def commit(self, _: bool) -> None:
-        if not self._enable or not self._add_documents:
+        if not self.enable or not self._add_documents:
             return
 
         import bm25s
@@ -22,10 +26,11 @@ class BM25IndexStore(BaseIndexStore):
         )
 
         chunks: list[str] = []
-        chunk_ids: list[dict[str, list[str]]] = []
+        chunk_ids: list[dict[str, str]] = []
         for doc in self._add_documents:
             chunks.extend(doc.chunks)
-            chunk_ids.append({"id": doc.chunk_ids})
+            for chunk_id in doc.chunk_ids:
+                chunk_ids.append({"id": chunk_id})
 
         chunk_tokens = bm25s.tokenize(chunks)
         retriever = bm25s.BM25(corpus=chunk_ids)

@@ -3,6 +3,7 @@ from src.domain.models.manifest import (
     Manifest,
     ManifestFileCache,
 )
+from src.infrastructure.indexers.stores.base import BaseIndexStore
 from src.infrastructure.manifest.storages.base import BaseManifestStorage
 
 
@@ -36,7 +37,7 @@ class ManifestManager:
 
         return list(cached_file.chunk_ids)
 
-    def update(self, document: Document) -> None:
+    def update(self, document: Document, stores: list[BaseIndexStore]) -> None:
         cached_file = self.get_cached_file(document)
 
         if not cached_file:
@@ -47,13 +48,18 @@ class ManifestManager:
                 file_path=document.filepath,
                 file_hash=document.hash,
                 chunk_ids=set(document.chunk_ids),
+                stores={store.name for store in stores if store.enable}.union(
+                    cached_file.stores if cached_file else set()
+                ),
             )
         )
 
-    def get_status(self, document: Document) -> DocumentStatus:
+    def get_status(
+        self, document: Document, store: BaseIndexStore
+    ) -> DocumentStatus:
         cached_file = self.get_cached_file(document)
 
-        if not cached_file:
+        if not cached_file or store.name not in cached_file.stores:
             return DocumentStatus.NEW
 
         if self.diff(document) is not None:

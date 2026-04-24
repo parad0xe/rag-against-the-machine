@@ -8,7 +8,7 @@ from src.domain.models.manifest import Manifest
 from src.infrastructure.document.loader import load_document
 from src.infrastructure.indexers.stores.base import BaseIndexStore
 from src.infrastructure.manifest.manager import ManifestManager
-from src.utils.path_util import ensure_valide_dirpath, get_filepaths
+from src.utils.path_util import ensure_valid_dirpath, get_filepaths
 
 logger = logging.getLogger(__file__)
 
@@ -89,7 +89,7 @@ class Indexer:
 
     def index(self, repository: Path) -> None:
         logger.info(f"Starting indexing for repository: {repository}")
-        ensure_valide_dirpath(repository)
+        ensure_valid_dirpath(repository)
 
         filepaths: list[str] = get_filepaths(
             repository,
@@ -110,17 +110,16 @@ class Indexer:
             if not document:
                 continue
 
-            status = self._manifest_store.get_status(document)
+            for store in self._stores:
+                status = self._manifest_store.get_status(document, store)
 
-            if status == DocumentStatus.UPDATE:
-                if diff := self._manifest_store.diff(document):
-                    for store in self._stores:
+                if status == DocumentStatus.UPDATE:
+                    if diff := self._manifest_store.diff(document):
                         store.delete(set(diff))
 
-            for store in self._stores:
                 store.add(document, status)
 
-            self._manifest_store.update(document)
+            self._manifest_store.update(document, self._stores)
 
         for store in self._stores:
             num_chunks_to_delete = len(store._delete_chunk_ids)

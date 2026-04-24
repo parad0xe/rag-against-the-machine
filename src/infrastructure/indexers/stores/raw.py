@@ -11,6 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 class RawChunkStore(BaseIndexStore):
+    @property
+    def name(self) -> str:
+        return "Raw"
+
     def __init__(self, filepath: Path, enable: bool = True) -> None:
         super().__init__(filepath.parent, enable)
         self._filepath = filepath
@@ -21,7 +25,7 @@ class RawChunkStore(BaseIndexStore):
         super().add(document, status)
 
     def commit(self, require_reset_before: bool) -> None:
-        if not self._enable:
+        if not self.enable:
             return
 
         if not self._add_documents and not self._delete_chunk_ids:

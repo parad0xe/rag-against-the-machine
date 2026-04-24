@@ -859,21 +859,6 @@ wheels = [
 ]
 
 [[package]]
-name = "light-embed"
-version = "1.0.8"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "huggingface-hub" },
-    { name = "numpy" },
-    { name = "onnxruntime" },
-    { name = "tokenizers" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/51/25/6abe1cadf34131541da2d3fa6ec4926a792b6d31bb74b72c65da72f2c0d3/light_embed-1.0.8.tar.gz", hash = "sha256:fe5d64b4319d48e0bf24881a665c9ac96b9eb02b2beff505b7def9ab8e7a8cf5", size = 14701, upload-time = "2025-09-06T22:30:58.16Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/7d/46/ddfb281f83fb249c2ed275713ed49c348dbeb6945239936cf35641acacbe/light_embed-1.0.8-py3-none-any.whl", hash = "sha256:1100718fa39d96389d36a469842cf68f5981dac355abe6cf8797fad711050fd0", size = 16779, upload-time = "2025-09-06T22:30:56.938Z" },
-]
-
-[[package]]
 name = "markdown-it-py"
 version = "4.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1807,7 +1792,6 @@ dependencies = [
     { name = "fire" },
     { name = "langchain" },
     { name = "langchain-text-splitters" },
-    { name = "light-embed" },
     { name = "pydantic" },
     { name = "sentence-transformers" },
     { name = "tqdm" },
@@ -1826,7 +1810,6 @@ requires-dist = [
     { name = "fire", specifier = ">=0.7.1" },
     { name = "langchain", specifier = ">=1.2.15" },
     { name = "langchain-text-splitters", specifier = ">=1.1.1" },
-    { name = "light-embed", specifier = ">=1.0.8" },
     { name = "pydantic", specifier = ">=2.13.2" },
     { name = "sentence-transformers", specifier = ">=5.4.1" },
     { name = "tqdm", specifier = ">=4.67.3" },

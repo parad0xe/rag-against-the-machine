@@ -1,8 +1,9 @@
 import glob
 import json
 import logging
+import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from src.domain.exceptions.schema import SchemaJSONSerializationError
 from src.domain.exceptions.storage import (
@@ -55,18 +56,25 @@ def get_extension(filepath: str) -> str:
     return ext.replace(".", "")
 
 
-def ensure_valide_filepath(path: Path) -> None:
+def ensure_valid_filepath(path: Path) -> None:
     if not path.exists():
         raise StorageFileNotFoundError(path)
     if not path.is_file():
         raise StorageNotAFileError(path)
 
 
-def ensure_valide_dirpath(path: Path) -> None:
+def ensure_valid_dirpath(
+    path: Path, modes: Iterable[int] = (os.R_OK,)
+) -> None:
     if not path.exists():
         raise StorageDirNotFoundError(path)
+
     if not path.is_dir():
         raise StorageNotADirectoryError(path)
+
+    for mode in modes:
+        if not os.access(path, mode):
+            raise StorageFilePermissionError(path)
 
 
 def readfile(
