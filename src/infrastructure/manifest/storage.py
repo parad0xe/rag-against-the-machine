@@ -1,12 +1,12 @@
 import json
 from pathlib import Path
-from typing import Any
+from typing import cast
 
 from src.domain.exceptions.schema import (
     SchemaInvalidJSONFormatError,
     SchemaInvalidJSONRootError,
 )
-from src.domain.models.manifest import Manifest
+from src.domain.models.manifest import Manifest, RawManifestDict
 
 
 class ManifestStorage:
@@ -23,7 +23,7 @@ class ManifestStorage:
         """
         self._filepath = filepath
 
-    def load(self) -> dict[str, Any] | None:
+    def load(self) -> RawManifestDict | None:
         """
         Loads the manifest data from a JSON file.
 
@@ -47,7 +47,7 @@ class ManifestStorage:
                     expected=dict, context=self._filepath
                 )
 
-            return manifest_data
+            return cast(RawManifestDict, manifest_data)
         except json.JSONDecodeError as e:
             raise SchemaInvalidJSONFormatError(
                 context=self._filepath,

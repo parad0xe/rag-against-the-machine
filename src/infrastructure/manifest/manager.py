@@ -1,8 +1,11 @@
 from pathlib import Path
-from typing import Any
 
-from src.domain.models.document import Document
-from src.domain.models.manifest import Manifest, ManifestFileCache
+from src.domain.models.document import Document, DocumentStatus
+from src.domain.models.manifest import (
+    Manifest,
+    ManifestFileCache,
+    RawManifestDict,
+)
 from src.infrastructure.manifest.storage import ManifestStorage
 from src.utils.common_util import generate_identity
 
@@ -50,16 +53,8 @@ class ManifestManager:
         Returns:
             The cached file information or None.
         """
-        cached_ext: dict[str, Any] = (
-            self.manifest.files_by_ext[document.ext]
-            if document.ext in self.manifest.files_by_ext
-            else {}
-        )
-        cached_file: ManifestFileCache | None = (
-            cached_ext[document.id] if document.id in cached_ext else None
-        )
-
-        return cached_file
+        cached_ext = self.manifest.files_by_ext.get(document.ext, {})
+        return cached_ext.get(document.id, None)
 
     def diff(self, document: Document) -> list[str] | None:
         """
@@ -77,8 +72,8 @@ class ManifestManager:
             return None
 
         if (
-            cached_file.file_hash == document.hash
-            and not self.identity_mismatch
+            not self.identity_mismatch
+            and cached_file.file_hash == document.hash
         ):
             return None
 
@@ -104,6 +99,17 @@ class ManifestManager:
             )
         )
 
+    def get_status(self, document: Document) -> DocumentStatus:
+        cached_file = self.get_cached_file(document)
+
+        if not cached_file:
+            return DocumentStatus.NEW
+
+        if self.diff(document) is not None:
+            return DocumentStatus.UPDATE
+
+        return DocumentStatus.NOTHING_TO_DO
+
     def commit(self) -> None:
         """
         Saves the current manifest state to the storage.
@@ -127,14 +133,9 @@ class ManifestManager:
         Returns:
             The loaded or newly created manifest.
         """
-        default_manifest_data: dict[str, Any] = {
+        default_manifest_data: RawManifestDict = {
             "repositories": list(
-                set(
-                    [
-                        str(Path(repository).resolve())
-                        for repository in repositories
-                    ]
-                )
+                {str(Path(repo).resolve()) for repo in repositories}
             ),
             "chunk_size": chunk_size,
             "embedding_model_name": embedding_model_name,
@@ -144,10 +145,12 @@ class ManifestManager:
         manifest_data = self._storage.load()
 
         if not manifest_data:
-            return Manifest(**default_manifest_data)
+            return Manifest.model_validate(default_manifest_data)
 
-        manifest = Manifest(**manifest_data)
+        manifest = Manifest.model_validate(manifest_data)
         if manifest.identity != self._identity:
             self.identity_mismatch = True
 
-        return Manifest(**{**manifest_data, **default_manifest_data})
+        return Manifest.model_validate(
+            {**manifest_data, **default_manifest_data}
+        )

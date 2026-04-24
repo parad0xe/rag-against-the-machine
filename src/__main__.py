@@ -61,19 +61,9 @@ class App:
             bm25_dirpath=BM25_DIRPATH,
             chroma_dirpath=CHROMA_DIRPATH,
             embedding_model_name=LLM_MODEL,
+            chunks_filepath=CHUNK_FILEPATH,
             with_semantic=semantic,
         )
-        # entrypoint_index(
-        #    path=Path(path),
-        #    extensions=extensions,
-        #    chunk_size=chunk_size,
-        #    bm25_dirpath=BM25_DIRPATH,
-        #    chroma_dirpath=CHROMA_DIRPATH,
-        #    stats_filepath=STATS_FILEPATH,
-        #    chunks_filepath=CHUNK_FILEPATH,
-        #    embedding_model_name=LLM_MODEL,
-        #    semantic=semantic,
-        # )
 
     def search(
         self,
@@ -137,6 +127,7 @@ class App:
 
 
 def main() -> None:
+    logger.info("Application starting...")
     os.environ.setdefault("PAGER", "cat")
 
     try:

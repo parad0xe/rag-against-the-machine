@@ -15,7 +15,7 @@ class LoggingSystem:
         "formatters": {
             "standard": {
                 "format": (
-                    "%(asctime)s [%(levelname)s] %(name)s "
+                    "%(asctime)s [%(levelname)s] "
                     "(%(filename)s:%(lineno)d): %(message)s"
                 ),
                 "datefmt": "%H:%M:%S",

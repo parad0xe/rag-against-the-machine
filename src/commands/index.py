@@ -8,6 +8,7 @@ from pydantic import PositiveInt
 from src.infrastructure.indexers.indexer import Indexer
 from src.infrastructure.indexers.stores.bm25 import BM25IndexStore
 from src.infrastructure.indexers.stores.chroma import ChromaIndexStore
+from src.infrastructure.indexers.stores.raw import RawChunkStore
 from src.infrastructure.manifest.manager import ManifestManager
 from src.utils.path_util import parse_extensions
 
@@ -26,6 +27,7 @@ def entrypoint_index(
     manifest_filepath: Path = Path("data/processed/manifest.json"),
     bm25_dirpath: Path = Path("data/processed/bm25_index"),
     chroma_dirpath: Path = Path("data/processed/chroma_index"),
+    chunks_filepath: Path = Path("data/processed/chunks.json"),
     with_semantic: bool = False,
 ) -> None:
     exts: list[str] = parse_extensions(extensions)
@@ -48,6 +50,7 @@ def entrypoint_index(
                 batch_size=BATCH_SIZE,
                 enable=with_semantic,
             ),
+            RawChunkStore(chunks_filepath, True),
         ],
     )
     indexer.sync()

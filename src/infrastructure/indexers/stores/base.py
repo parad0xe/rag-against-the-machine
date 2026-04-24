@@ -25,3 +25,8 @@ class BaseIndexStore(ABC):
 
     @abstractmethod
     def commit(self, require_reset_before: bool) -> None: ...
+
+    def _clear_state(self) -> None:
+        self._delete_chunk_ids.clear()
+        self._add_documents.clear()
+        self._document_ids.clear()

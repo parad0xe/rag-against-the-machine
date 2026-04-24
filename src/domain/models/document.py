@@ -1,21 +1,14 @@
 from enum import Enum, auto
-from typing import TypedDict
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from src.domain.models.chunk import ChunkMetadata
 
 
 class DocumentStatus(str, Enum):
     NOTHING_TO_DO = auto()
     NEW = auto()
     UPDATE = auto()
-
-
-class ChunkMetadata(TypedDict):
-    text: str
-    hash: str
-    file_path: str
-    first_character_index: int
-    last_character_index: int
 
 
 class Document(BaseModel):
