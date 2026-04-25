@@ -6,35 +6,35 @@ from chromadb import Collection
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 
-from src.infrastructure.document.stores.base import BaseQueryIndexStore
+from src.infrastructure.document.stores.base import IndexStoreQuery
 
 logger = logging.getLogger(__file__)
 
 
-class ChromaQueryIndexStore(BaseQueryIndexStore):
+class ChromaIndexStoreQuery(IndexStoreQuery):
     @property
     def name(self) -> str:
         return "Chroma"
 
     def __init__(
         self,
-        dirpath: Path,
+        dir_path: Path,
         embedding_model_name: str,
         enable: bool = True,
         weight: float = 1.0,
     ) -> None:
-        super().__init__(dirpath, enable, weight)
+        super().__init__(dir_path, enable, weight)
         self._embedding_model_name: str = embedding_model_name
         self._collection: Collection | None = None
         self._model: SentenceTransformer | None = None
 
     def search(self, query: str, k: int) -> list[str] | None:
-        if not self.enable or not self._dirpath.exists():
+        if not self.enable or not self._dir_path.exists():
             return []
 
         if self._collection is None:
             client = chromadb.PersistentClient(
-                path=str(self._dirpath),
+                path=str(self._dir_path),
                 settings=Settings(anonymized_telemetry=False),
             )
             self._collection = client.get_or_create_collection(name="chunks")

@@ -3,31 +3,31 @@ from pathlib import Path
 
 import bm25s
 
-from src.infrastructure.document.stores.base import BaseQueryIndexStore
+from src.infrastructure.document.stores.base import IndexStoreQuery
 
 logger = logging.getLogger(__file__)
 
 
-class BM25QueryIndexStore(BaseQueryIndexStore):
+class BM25IndexStoreQuery(IndexStoreQuery):
     @property
     def name(self) -> str:
         return "BM25"
 
     def __init__(
         self,
-        dirpath: Path,
+        dir_path: Path,
         enable: bool = True,
         weight: float = 1.0,
     ) -> None:
-        super().__init__(dirpath, enable, weight)
+        super().__init__(dir_path, enable, weight)
         self._retriever: bm25s.BM25 | None = None
 
     def search(self, query: str, k: int) -> list[str] | None:
-        if not self.enable or not self._dirpath.exists():
+        if not self.enable or not self._dir_path.exists():
             return []
 
         if self._retriever is None:
-            self._retriever = bm25s.BM25.load(self._dirpath, load_corpus=True)
+            self._retriever = bm25s.BM25.load(self._dir_path, load_corpus=True)
 
         corpus_size = (
             len(self._retriever.corpus) if self._retriever.corpus else 0

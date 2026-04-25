@@ -2,20 +2,22 @@ import json
 from pathlib import Path
 
 from src.domain.models.chunk import Chunk
-from src.utils.path_util import readfile
+from src.utils.file import file_load_content
 
 
 class ChunksRepository:
-    def __init__(self, filepath: Path) -> None:
-        self._filepath = filepath
+    def __init__(self, file_path: Path) -> None:
+        self._file_path = file_path
         self._cache: dict[str, Chunk] | None = None
 
     def get_chunks(self, chunk_ids: list[str]) -> dict[str, Chunk]:
-        if not self._filepath.exists():
+        if not self._file_path.exists():
             return {}
 
         if self._cache is None:
-            content = readfile(self._filepath, ignore_unicode_error=True)
+            content = file_load_content(
+                self._file_path, ignore_unicode_error=True
+            )
             if not content:
                 return {}
             try:

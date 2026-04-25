@@ -18,7 +18,7 @@ class Document(BaseModel):
     hash: str
     ext: str
 
-    filepath: str
+    file_path: str
     content: str
 
     chunks: list[str] = Field(default_factory=list)

@@ -10,14 +10,14 @@ from rich.rule import Rule
 from rich.text import Text
 from transformers import pipeline
 
-from src.infrastructure.document.stores.bm25.query import BM25QueryIndexStore
+from src.infrastructure.document.stores.bm25.query import BM25IndexStoreQuery
 from src.infrastructure.document.stores.chroma.query import (
-    ChromaQueryIndexStore,
+    ChromaIndexStoreQuery,
 )
-from src.infrastructure.document.stores.registry import QueryIndexStoreRegistry
+from src.infrastructure.document.stores.registry import IndexStoreQueryRegistry
 from src.infrastructure.repositories.chunks import ChunksRepository
 from src.infrastructure.retriever import Retriever
-from src.utils.path_util import ensure_valid_dirpath
+from src.utils.file import ensure_valid_dir_path
 
 logger = logging.getLogger(__file__)
 
@@ -47,9 +47,9 @@ class Translator:
 @validate_call()
 def entrypoint_search(
     query: str,
-    bm25_dirpath: Path,
-    chroma_dirpath: Path,
-    chunks_filepath: Path,
+    bm25_dir_path: Path,
+    chroma_dir_path: Path,
+    chunks_file_path: Path,
     embedding_model_name: str = "all-MiniLM-L6-v2",
     k: int = 10,
 ) -> None:
@@ -64,16 +64,16 @@ def entrypoint_search(
     )
 
     retriever = Retriever(
-        index_store_registry=QueryIndexStoreRegistry(
-            BM25QueryIndexStore(bm25_dirpath, enable=True, weight=0.70),
-            ChromaQueryIndexStore(
-                chroma_dirpath,
+        index_store_registry=IndexStoreQueryRegistry(
+            BM25IndexStoreQuery(bm25_dir_path, enable=True, weight=0.65),
+            ChromaIndexStoreQuery(
+                chroma_dir_path,
                 embedding_model_name,
                 enable=True,  # faire en sorte de selectionner en fonction 'with semantic' dans le manifest
-                weight=0.30,
+                weight=0.35,
             ),
         ),
-        chunks_repository=ChunksRepository(chunks_filepath),
+        chunks_repository=ChunksRepository(chunks_file_path),
     )
     original_query = query
     query = Translator().translate_to_english(query)
@@ -84,8 +84,8 @@ def entrypoint_search(
         )
     console.print()
 
-    ensure_valid_dirpath(bm25_dirpath)
-    ensure_valid_dirpath(chroma_dirpath)
+    ensure_valid_dir_path(bm25_dir_path)
+    ensure_valid_dir_path(chroma_dir_path)
 
     logger.info(f"Executing hybrid search for query: '{query}'")
     results = retriever.search(query, k=k)

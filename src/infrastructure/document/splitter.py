@@ -4,10 +4,10 @@ from typing import Any
 
 from langchain_text_splitters import Language, RecursiveCharacterTextSplitter
 
-from src.utils.path_util import get_extension
+from src.utils.file import get_extension
 
 
-class CustomTextSplitter(RecursiveCharacterTextSplitter):
+class LanguageTextSplitter(RecursiveCharacterTextSplitter):
     _EXTENSION_TO_LANGUAGE = {
         ".cpp": Language.CPP,
         ".hpp": Language.CPP,
@@ -59,7 +59,7 @@ class CustomTextSplitter(RecursiveCharacterTextSplitter):
     @classmethod
     def from_extension(
         cls, extension: str, **kwargs: Any
-    ) -> CustomTextSplitter:
+    ) -> LanguageTextSplitter:
         if not extension.startswith("."):
             extension = f".{extension}"
         extension = extension.lower()
@@ -70,12 +70,19 @@ class CustomTextSplitter(RecursiveCharacterTextSplitter):
         return cls(language, **kwargs)
 
     @classmethod
-    def from_filename(cls, filename: str, **kwargs: Any) -> CustomTextSplitter:
+    def from_filename(
+        cls, filename: str, **kwargs: Any
+    ) -> LanguageTextSplitter:
         ext = get_extension(filename)
         return cls.from_extension(ext, **kwargs)
 
     def __init__(self, language: Language | None, **kwargs: Any) -> None:
-        separators = (
-            self.get_separators_for_language(language) if language else None
-        )
+        try:
+            separators = (
+                self.get_separators_for_language(language)
+                if language
+                else None
+            )
+        except ValueError:
+            separators = None
         super().__init__(separators=separators, **kwargs)

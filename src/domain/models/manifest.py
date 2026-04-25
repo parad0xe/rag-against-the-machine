@@ -23,4 +23,4 @@ class Manifest(BaseModel):
     files_by_ext: dict[str, dict[str, ManifestFileCache]] = Field(
         default_factory=dict
     )
-    identity: str
+    fingerprint: str

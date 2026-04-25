@@ -3,12 +3,12 @@ import logging
 import bm25s
 
 from src.domain.models.document import Document, DocumentStatus
-from src.infrastructure.document.stores.base import BaseSyncIndexStore
+from src.infrastructure.document.stores.base import IndexStoreSync
 
 logger = logging.getLogger(__file__)
 
 
-class BM25SyncIndexStore(BaseSyncIndexStore):
+class BM25IndexStoreSync(IndexStoreSync):
     @property
     def name(self) -> str:
         return "BM25"
@@ -36,11 +36,11 @@ class BM25SyncIndexStore(BaseSyncIndexStore):
         chunk_tokens = bm25s.tokenize(chunks)
         retriever = bm25s.BM25(corpus=chunk_ids)
         retriever.index(chunk_tokens)
-        retriever.save(self._dirpath)
+        retriever.save(self._dir_path)
 
         logger.info(
             f"[{self.__class__.__name__}] Successfully saved index to "
-            f"'{self._dirpath}'."
+            f"'{self._dir_path}'."
         )
 
         self._clear_state()

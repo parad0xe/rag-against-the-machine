@@ -5,39 +5,39 @@ from typing import Generator
 from src.domain.models.document import Document, DocumentStatus
 
 
-class BaseIndexStore(ABC):
+class IndexStore(ABC):
     @property
     @abstractmethod
     def name(self) -> str: ...
 
-    def __init__(self, dirpath: Path, enable: bool = True) -> None:
+    def __init__(self, dir_path: Path, enable: bool = True) -> None:
         self.enable: bool = enable
-        self._dirpath: Path = dirpath
+        self._dir_path: Path = dir_path
 
     def exists(self) -> bool:
-        return self._dirpath.exists()
+        return self._dir_path.exists()
 
 
-class BaseQueryIndexStore(BaseIndexStore, ABC):
+class IndexStoreQuery(IndexStore, ABC):
     @abstractmethod
     def search(self, query: str, k: int) -> list[str] | None: ...
 
     def __init__(
         self,
-        dirpath: Path,
+        dir_path: Path,
         enable: bool = True,
         weight: float = 1.0,
     ) -> None:
-        super().__init__(dirpath, enable)
+        super().__init__(dir_path, enable)
         self.weight: float = weight
 
 
-class BaseSyncIndexStore(BaseIndexStore, ABC):
+class IndexStoreSync(IndexStore, ABC):
     @abstractmethod
-    def commit(self, require_reset_before: bool) -> None: ...
+    def commit(self, require_reset: bool) -> None: ...
 
-    def __init__(self, dirpath: Path, enable: bool = True) -> None:
-        super().__init__(dirpath, enable)
+    def __init__(self, dir_path: Path, enable: bool = True) -> None:
+        super().__init__(dir_path, enable)
         self._delete_chunk_ids: set[str] = set()
         self._add_documents: list[Document] = []
         self._document_ids: set[str] = set()

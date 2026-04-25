@@ -52,11 +52,11 @@ class App:
 
         entrypoint_index(
             repositories=[Path(path)],
-            bm25_dirpath=BM25_DIRPATH,
-            manifest_filepath=MANIFEST_FILEPATH,
-            chroma_dirpath=CHROMA_DIRPATH,
+            bm25_dir_path=BM25_DIRPATH,
+            manifest_file_path=MANIFEST_FILEPATH,
+            chroma_dir_path=CHROMA_DIRPATH,
             embedding_model_name=EMBEDDING_LLM_MODEL,
-            chunks_filepath=CHUNK_FILEPATH,
+            chunks_file_path=CHUNK_FILEPATH,
             extensions=extensions,
             chunk_size=chunk_size,
             with_semantic=semantic,
@@ -81,9 +81,9 @@ class App:
         entrypoint_search(
             query=query,
             k=k,
-            bm25_dirpath=BM25_DIRPATH,
-            chunks_filepath=CHUNK_FILEPATH,
-            chroma_dirpath=CHROMA_DIRPATH,
+            bm25_dir_path=BM25_DIRPATH,
+            chunks_file_path=CHUNK_FILEPATH,
+            chroma_dir_path=CHROMA_DIRPATH,
             embedding_model_name=EMBEDDING_LLM_MODEL,
         )
 

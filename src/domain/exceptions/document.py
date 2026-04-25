@@ -24,16 +24,16 @@ class NoDocumentError(DocumentError):
 
     default_message = "No document file was found."
 
-    def __init__(self, dirpath: str | Path | None = None) -> None:
+    def __init__(self, dir_path: str | Path | None = None) -> None:
         """
         Initializes the error with an optional directory path.
 
         Args:
-            dirpath: The directory path where no document was found.
+            dir_path: The directory path where no document was found.
         """
         message: str | None = (
-            f"No document file was found in {dirpath}"
-            if dirpath is not None
+            f"No document file was found in {dir_path}"
+            if dir_path is not None
             else None
         )
         super().__init__(message)

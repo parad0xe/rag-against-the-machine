@@ -6,28 +6,28 @@ from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
-from src.infrastructure.document.stores.base import BaseSyncIndexStore
+from src.infrastructure.document.stores.base import IndexStoreSync
 
 logger = logging.getLogger(__file__)
 
 
-class ChromaSyncIndexStore(BaseSyncIndexStore):
+class ChromaIndexStoreSync(IndexStoreSync):
     @property
     def name(self) -> str:
         return "Chroma"
 
     def __init__(
         self,
-        dirpath: Path,
+        dir_path: Path,
         embedding_model_name: str,
         batch_size: int = 32,
         enable: bool = True,
     ) -> None:
-        super().__init__(dirpath, enable)
+        super().__init__(dir_path, enable)
         self._embedding_model_name: str = embedding_model_name
         self._batch_size: int = batch_size
 
-    def commit(self, require_reset_before: bool) -> None:
+    def commit(self, require_reset: bool) -> None:
         if not self._add_documents and not self._delete_chunk_ids:
             return
 
@@ -37,13 +37,13 @@ class ChromaSyncIndexStore(BaseSyncIndexStore):
             f"{len(self._delete_chunk_ids)} deletions."
         )
 
-        self._dirpath.mkdir(parents=True, exist_ok=True)
+        self._dir_path.mkdir(parents=True, exist_ok=True)
         client = chromadb.PersistentClient(
-            path=str(self._dirpath),
+            path=str(self._dir_path),
             settings=Settings(anonymized_telemetry=False),
         )
 
-        if require_reset_before:
+        if require_reset:
             logger.info(f"[{self.__class__.__name__}] Resetting collection.")
             try:
                 client.delete_collection(name="chunks")

@@ -2,12 +2,12 @@ from abc import ABC
 from typing import Generic, TypeVar
 
 from src.infrastructure.document.stores.base import (
-    BaseIndexStore,
-    BaseQueryIndexStore,
-    BaseSyncIndexStore,
+    IndexStore,
+    IndexStoreQuery,
+    IndexStoreSync,
 )
 
-T = TypeVar("T", bound=BaseIndexStore)
+T = TypeVar("T", bound=IndexStore)
 
 
 class IndexStoreRegistry(ABC, Generic[T]):
@@ -25,9 +25,9 @@ class IndexStoreRegistry(ABC, Generic[T]):
         return None
 
 
-class QueryIndexStoreRegistry(IndexStoreRegistry[BaseQueryIndexStore]):
+class IndexStoreQueryRegistry(IndexStoreRegistry[IndexStoreQuery]):
     pass
 
 
-class SyncIndexStoreRegistry(IndexStoreRegistry[BaseSyncIndexStore]):
+class IndexStoreSyncRegistry(IndexStoreRegistry[IndexStoreSync]):
     pass

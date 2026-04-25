@@ -1,5 +1,7 @@
 import logging
+from collections import OrderedDict
 from pathlib import Path
+from typing import Any
 
 from tqdm import tqdm
 
@@ -7,10 +9,10 @@ from src.domain.models.document import DocumentStatus
 from src.domain.models.manifest import Manifest
 from src.infrastructure.document.loader import load_document
 from src.infrastructure.document.stores.registry import (
-    SyncIndexStoreRegistry,
+    IndexStoreSyncRegistry,
 )
 from src.infrastructure.repositories.manifest import ManifestRepository
-from src.utils.path_util import ensure_valid_dirpath, get_filepaths
+from src.utils.file import ensure_valid_dir_path, iter_file_paths
 
 logger = logging.getLogger(__file__)
 
@@ -20,14 +22,15 @@ class Indexer:
         self,
         manifest_repository: ManifestRepository,
         extensions: list[str],
-        index_store_registry: SyncIndexStoreRegistry,
+        index_store_registry: IndexStoreSyncRegistry,
     ) -> None:
         self._manifest_repository: ManifestRepository = manifest_repository
-        self._index_store_registry: SyncIndexStoreRegistry = (
+        self._index_store_registry: IndexStoreSyncRegistry = (
             index_store_registry
         )
         self._extensions: list[str] = extensions
-        self._viewed_filepaths: set[Path] = set()
+        self._viewed_file_paths: set[Path] = set()
+        logger.info(f"extensions: {extensions}")
 
     def sync(self) -> None:
         logger.info("Starting synchronization of manifest and stores.")
@@ -93,39 +96,59 @@ class Indexer:
 
     def index(self, repository: Path) -> None:
         logger.info(f"Starting indexing for repository: {repository}")
-        ensure_valid_dirpath(repository)
+        ensure_valid_dir_path(repository)
 
-        filepaths: list[str] = get_filepaths(
+        iterator = iter_file_paths(
             repository,
             self._extensions,
             recursive=True,
         )
-        for filepath in tqdm(filepaths, desc="Processing documents"):
-            resolved_path = Path(filepath).resolve()
+        stats: OrderedDict[str, Any] = OrderedDict(
+            documents=0,
+            chunks=0,
+        )
 
-            if resolved_path in self._viewed_filepaths:
-                continue
-            self._viewed_filepaths.add(resolved_path)
+        with tqdm(
+            iterator,
+            desc="Indexing documents",
+            bar_format=(
+                "{desc} | scan {n} documents | {elapsed} | {rate_fmt}{postfix}"
+            ),
+            unit="files",
+        ) as pbar:
+            for file_path in pbar:
+                pbar.set_postfix(ordered_dict=stats)
 
-            document = load_document(
-                resolved_path,
-                self._manifest_repository.manifest.chunk_size,
-            )
-            if not document:
-                continue
+                if file_path in self._viewed_file_paths:
+                    continue
+                self._viewed_file_paths.add(file_path)
 
-            for store in self._index_store_registry.stores:
-                status = self._manifest_repository.get_status(document, store)
+                document = load_document(
+                    file_path,
+                    self._manifest_repository.manifest.chunk_size,
+                    ignore_errors=True,
+                )
+                if not document:
+                    continue
 
-                if status == DocumentStatus.UPDATE:
-                    if diff := self._manifest_repository.diff(document):
-                        store.delete(set(diff))
+                stats["documents"] += 1
+                stats["chunks"] += len(document.chunk_ids)
 
-                store.add(document, status)
+                for store in self._index_store_registry.stores:
+                    status = self._manifest_repository.get_status(
+                        document, store
+                    )
 
-            self._manifest_repository.update(
-                document, self._index_store_registry
-            )
+                    if status == DocumentStatus.UPDATE:
+                        if diff := self._manifest_repository.diff(document):
+                            store.delete(set(diff))
+                    store.add(document, status)
+
+                self._manifest_repository.update(
+                    document, self._index_store_registry
+                )
+
+                pbar.set_postfix(ordered_dict=stats)
 
         for store in self._index_store_registry.stores:
             num_chunks_to_delete = len(store._delete_chunk_ids)
@@ -142,4 +165,4 @@ class Indexer:
         logger.info("Committing changes to stores.")
 
         for store in self._index_store_registry.stores:
-            store.commit(self._manifest_repository.identity_mismatch)
+            store.commit(self._manifest_repository.fingerprint_mismatch)

@@ -2,20 +2,20 @@ import json
 import logging
 from pathlib import Path
 
-from src.infrastructure.document.stores.base import BaseSyncIndexStore
-from src.utils.path_util import file_write_json, readfile
+from src.infrastructure.document.stores.base import IndexStoreSync
+from src.utils.file import file_load_content, file_write_json
 
 logger = logging.getLogger(__file__)
 
 
-class RawSyncIndexStore(BaseSyncIndexStore):
+class RawIndexStoreSync(IndexStoreSync):
     @property
     def name(self) -> str:
         return "Raw"
 
-    def __init__(self, filepath: Path, enable: bool = True) -> None:
-        super().__init__(filepath.parent, enable)
-        self._filepath = filepath
+    def __init__(self, file_path: Path, enable: bool = True) -> None:
+        super().__init__(file_path.parent, enable)
+        self._file_path = file_path
 
     def commit(self, require_reset_before: bool) -> None:
         if not self.enable:
@@ -25,8 +25,10 @@ class RawSyncIndexStore(BaseSyncIndexStore):
             return
 
         data: dict = {}
-        if self._filepath.exists() and not require_reset_before:
-            content = readfile(self._filepath, ignore_unicode_error=True)
+        if self._file_path.exists() and not require_reset_before:
+            content = file_load_content(
+                self._file_path, ignore_unicode_error=True
+            )
             if content:
                 try:
                     data = json.loads(content)
@@ -42,5 +44,5 @@ class RawSyncIndexStore(BaseSyncIndexStore):
                 for cid, metadata in doc.chunk_metadatas.items():
                     data[cid] = metadata
 
-        file_write_json(self._filepath, data)
+        file_write_json(self._file_path, data)
         self._clear_state()
