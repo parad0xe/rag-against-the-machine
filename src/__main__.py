@@ -20,20 +20,14 @@ from src.logging import LoggingSystem
 
 logger = logging.getLogger(__file__)
 
-DEFAULT_INDEX_PATH: str = "vllm-0.10.1"
+DEFAULT_REPOSITORY_DIRPATH: str = "vllm-0.10.1"
 
 PROCESSED_DIR: Path = Path("data/processed")
-
 BM25_DIRPATH: Path = PROCESSED_DIR / "bm25_index"
 CHROMA_DIRPATH: Path = PROCESSED_DIR / "chroma_index"
-
-STATS_FILEPATH: Path = PROCESSED_DIR / "stats.dat"
+MANIFEST_FILEPATH: Path = PROCESSED_DIR / "manifest.json"
 CHUNK_FILEPATH: Path = PROCESSED_DIR / "chunks.json"
-
-LLM_MODEL: str = (
-    # "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    "all-MiniLM-L6-v2"
-)
+EMBEDDING_LLM_MODEL: str = "all-MiniLM-L6-v2"
 
 
 class App:
@@ -42,7 +36,7 @@ class App:
 
     def index(
         self,
-        path: str = DEFAULT_INDEX_PATH,
+        path: str = DEFAULT_REPOSITORY_DIRPATH,
         extensions: str | tuple[str] = "*",
         chunk_size: int = 2000,
         semantic: bool = False,
@@ -58,12 +52,13 @@ class App:
 
         entrypoint_index(
             repositories=[Path(path)],
+            bm25_dirpath=BM25_DIRPATH,
+            manifest_filepath=MANIFEST_FILEPATH,
+            chroma_dirpath=CHROMA_DIRPATH,
+            embedding_model_name=EMBEDDING_LLM_MODEL,
+            chunks_filepath=CHUNK_FILEPATH,
             extensions=extensions,
             chunk_size=chunk_size,
-            bm25_dirpath=BM25_DIRPATH,
-            chroma_dirpath=CHROMA_DIRPATH,
-            embedding_model_name=LLM_MODEL,
-            chunks_filepath=CHUNK_FILEPATH,
             with_semantic=semantic,
         )
 
@@ -86,9 +81,10 @@ class App:
         entrypoint_search(
             query=query,
             k=k,
-            embedding_model_name=LLM_MODEL,
             bm25_dirpath=BM25_DIRPATH,
             chunks_filepath=CHUNK_FILEPATH,
+            chroma_dirpath=CHROMA_DIRPATH,
+            embedding_model_name=EMBEDDING_LLM_MODEL,
         )
 
     def search_dataset(self, verbose: int = 0) -> None:

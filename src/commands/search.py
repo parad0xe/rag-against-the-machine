@@ -14,6 +14,7 @@ from src.infrastructure.retriever import Retriever
 from src.infrastructure.stores.bm25 import BM25Store
 from src.infrastructure.stores.chroma import ChromaStore
 from src.infrastructure.stores.raw import RawChunkStore
+from src.infrastructure.stores.registry import StoreRegistry
 from src.utils.path_util import ensure_valid_dirpath
 
 logger = logging.getLogger(__file__)
@@ -44,13 +45,11 @@ class Translator:
 @validate_call()
 def entrypoint_search(
     query: str,
+    bm25_dirpath: Path,
+    chroma_dirpath: Path,
+    chunks_filepath: Path,
+    embedding_model_name: str = "all-MiniLM-L6-v2",
     k: int = 10,
-    bm25_dirpath: Path = Path("data/processed/bm25_index"),
-    chroma_dirpath: Path = Path("data/processed/chroma_index"),
-    chunks_filepath: Path = Path("data/processed/chunks.json"),
-    embedding_model_name: str = (
-        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    ),
 ) -> None:
     console = Console()
     console.print()
@@ -63,7 +62,7 @@ def entrypoint_search(
     )
 
     retriever = Retriever(
-        stores=[
+        registry=StoreRegistry(
             BM25Store(bm25_dirpath, enable=True, weight=0.70),
             ChromaStore(
                 chroma_dirpath,
@@ -72,7 +71,7 @@ def entrypoint_search(
                 weight=0.30,
             ),
             RawChunkStore(chunks_filepath, enable=True),
-        ]
+        )
     )
     original_query = query
     query = Translator().translate_to_english(query)

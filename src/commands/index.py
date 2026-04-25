@@ -11,6 +11,7 @@ from src.infrastructure.manifest.storages.disk import ManifestDiskStorage
 from src.infrastructure.stores.bm25 import BM25Store
 from src.infrastructure.stores.chroma import ChromaStore
 from src.infrastructure.stores.raw import RawChunkStore
+from src.infrastructure.stores.registry import StoreRegistry
 from src.utils.path_util import parse_extensions
 
 logger = logging.getLogger(__file__)
@@ -19,16 +20,14 @@ BATCH_SIZE = 32
 
 
 def entrypoint_index(
-    repositories: list[Path] = [Path("vllm-0.10.1")],
+    repositories: list[Path],
+    manifest_filepath: Path,
+    bm25_dirpath: Path,
+    chroma_dirpath: Path,
+    chunks_filepath: Path,
     extensions: str = "*",
     chunk_size: PositiveInt = 2000,
-    embedding_model_name: str = (
-        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    ),
-    manifest_filepath: Path = Path("data/processed/manifest.json"),
-    bm25_dirpath: Path = Path("data/processed/bm25_index"),
-    chroma_dirpath: Path = Path("data/processed/chroma_index"),
-    chunks_filepath: Path = Path("data/processed/chunks.json"),
+    embedding_model_name: str = "all-MiniLM-L6-v2",
     with_semantic: bool = False,
 ) -> None:
     repositories = list({repo.resolve() for repo in repositories})
@@ -47,7 +46,7 @@ def entrypoint_index(
     indexer = Indexer(
         manifest_manager,
         extensions=exts,
-        stores=[
+        registry=StoreRegistry(
             BM25Store(bm25_dirpath, enable=True),
             ChromaStore(
                 chroma_dirpath,
@@ -56,7 +55,7 @@ def entrypoint_index(
                 enable=with_semantic,
             ),
             RawChunkStore(chunks_filepath, True),
-        ],
+        ),
     )
     indexer.sync()
 

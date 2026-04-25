@@ -5,6 +5,7 @@ from src.domain.models.manifest import (
 )
 from src.infrastructure.manifest.storages.base import BaseManifestStorage
 from src.infrastructure.stores.base import BaseStore
+from src.infrastructure.stores.registry import StoreRegistry
 
 
 class ManifestManager:
@@ -37,7 +38,7 @@ class ManifestManager:
 
         return list(cached_file.chunk_ids)
 
-    def update(self, document: Document, stores: list[BaseStore]) -> None:
+    def update(self, document: Document, registry: StoreRegistry) -> None:
         cached_file = self.get_cached_file(document)
 
         if not cached_file:
@@ -48,7 +49,7 @@ class ManifestManager:
                 file_path=document.filepath,
                 file_hash=document.hash,
                 chunk_ids=set(document.chunk_ids),
-                stores={store.name for store in stores if store.enable}.union(
+                stores={store.name for store in registry.active_stores}.union(
                     cached_file.stores if cached_file else set()
                 ),
             )
