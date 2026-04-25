@@ -142,6 +142,7 @@ class Indexer:
                     if status == DocumentStatus.UPDATE:
                         if diff := self._manifest_repository.diff(document):
                             store.delete(set(diff))
+
                     store.add(document, status)
 
                 self._manifest_repository.update(
