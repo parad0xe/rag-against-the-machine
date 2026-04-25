@@ -10,11 +10,13 @@ from rich.rule import Rule
 from rich.text import Text
 from transformers import pipeline
 
+from src.infrastructure.document.stores.bm25.query import BM25QueryIndexStore
+from src.infrastructure.document.stores.chroma.query import (
+    ChromaQueryIndexStore,
+)
+from src.infrastructure.document.stores.registry import QueryIndexStoreRegistry
+from src.infrastructure.repositories.chunks import ChunksRepository
 from src.infrastructure.retriever import Retriever
-from src.infrastructure.stores.bm25 import BM25Store
-from src.infrastructure.stores.chroma import ChromaStore
-from src.infrastructure.stores.raw import RawChunkStore
-from src.infrastructure.stores.registry import StoreRegistry
 from src.utils.path_util import ensure_valid_dirpath
 
 logger = logging.getLogger(__file__)
@@ -62,16 +64,16 @@ def entrypoint_search(
     )
 
     retriever = Retriever(
-        registry=StoreRegistry(
-            BM25Store(bm25_dirpath, enable=True, weight=0.70),
-            ChromaStore(
+        index_store_registry=QueryIndexStoreRegistry(
+            BM25QueryIndexStore(bm25_dirpath, enable=True, weight=0.70),
+            ChromaQueryIndexStore(
                 chroma_dirpath,
                 embedding_model_name,
                 enable=True,  # faire en sorte de selectionner en fonction 'with semantic' dans le manifest
                 weight=0.30,
             ),
-            RawChunkStore(chunks_filepath, enable=True),
-        )
+        ),
+        chunks_repository=ChunksRepository(chunks_filepath),
     )
     original_query = query
     query = Translator().translate_to_english(query)

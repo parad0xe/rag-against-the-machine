@@ -1,19 +1,24 @@
-from typing import Any
-
+from src.domain.models.chunk import Chunk
 from src.domain.models.source import MinimalSource
-from src.infrastructure.stores.registry import StoreRegistry
+from src.infrastructure.document.stores.registry import QueryIndexStoreRegistry
+from src.infrastructure.repositories.chunks import ChunksRepository
 from src.utils.common_util import compute_rrf
 
 
 class Retriever:
-    def __init__(self, registry: StoreRegistry) -> None:
-        self._registry = registry
+    def __init__(
+        self,
+        index_store_registry: QueryIndexStoreRegistry,
+        chunks_repository: ChunksRepository,
+    ) -> None:
+        self._index_store_registry = index_store_registry
+        self._chunks_repository = chunks_repository
 
     def search(self, query: str, k: int = 10) -> list[MinimalSource]:
         pool_size = max(k * 30, 200)
         search_results: list[tuple[list[str], float]] = []
 
-        for store in self._registry.active_stores:
+        for store in self._index_store_registry.active_stores:
             res = store.search(query, k=pool_size)
             if res:
                 search_results.append((res, store.weight))
@@ -21,17 +26,14 @@ class Retriever:
         top_results = compute_rrf(search_results)[:k]
         top_ids = [cid for cid, _ in top_results]
 
-        chunks_data: dict[str, Any] = {}
-
-        if top_ids:
-            for store in self._registry.active_stores:
-                items = store.get_items(top_ids)
-                if items:
-                    chunks_data.update(items)
+        chunks_data = self._chunks_repository.get_chunks(top_ids)
 
         sources: list[MinimalSource] = []
-        for cid, score in top_results:
-            data = chunks_data.get(cid, {})
+        for cid, _ in top_results:
+            data: Chunk | None = chunks_data.get(cid, None)
+
+            if data is None:
+                continue
 
             # On instancie le modèle strict pour chaque résultat
             source = MinimalSource(

@@ -1,0 +1,88 @@
+import logging
+from pathlib import Path
+
+import chromadb
+from chromadb.config import Settings
+from sentence_transformers import SentenceTransformer
+from tqdm import tqdm
+
+from src.infrastructure.document.stores.base import BaseSyncIndexStore
+
+logger = logging.getLogger(__file__)
+
+
+class ChromaSyncIndexStore(BaseSyncIndexStore):
+    @property
+    def name(self) -> str:
+        return "Chroma"
+
+    def __init__(
+        self,
+        dirpath: Path,
+        embedding_model_name: str,
+        batch_size: int = 32,
+        enable: bool = True,
+    ) -> None:
+        super().__init__(dirpath, enable)
+        self._embedding_model_name: str = embedding_model_name
+        self._batch_size: int = batch_size
+
+    def commit(self, require_reset_before: bool) -> None:
+        if not self._add_documents and not self._delete_chunk_ids:
+            return
+
+        logger.info(
+            f"[{self.__class__.__name__}] Synchronizing index: "
+            f"{len(self._add_documents)} additions, "
+            f"{len(self._delete_chunk_ids)} deletions."
+        )
+
+        self._dirpath.mkdir(parents=True, exist_ok=True)
+        client = chromadb.PersistentClient(
+            path=str(self._dirpath),
+            settings=Settings(anonymized_telemetry=False),
+        )
+
+        if require_reset_before:
+            logger.info(f"[{self.__class__.__name__}] Resetting collection.")
+            try:
+                client.delete_collection(name="chunks")
+            except ValueError:
+                pass
+
+        collection = client.get_or_create_collection(name="chunks")
+
+        if self._delete_chunk_ids:
+            collection.delete(ids=list(self._delete_chunk_ids))
+            logger.debug(
+                f"[{self.__class__.__name__}] Removed "
+                f"{len(self._delete_chunk_ids)} chunks from storage."
+            )
+
+        if self._add_documents:
+            logger.info(
+                f"[{self.__class__.__name__}] Loading embedding model: "
+                f"'{self._embedding_model_name}'"
+            )
+            model = SentenceTransformer(self._embedding_model_name)
+
+            total_chunks = sum(len(d.chunks) for d in self._add_documents)
+            logger.info(
+                f"[{self.__class__.__name__}] Encoding {total_chunks} chunks "
+                f"in batches of {self._batch_size}."
+            )
+            with tqdm(
+                total=total_chunks, desc="Store chunk embeddings"
+            ) as pbar:
+                for batch_chunks, batch_ids in self._batches(self._batch_size):
+                    embeddings = model.encode(
+                        batch_chunks, convert_to_numpy=True
+                    )
+                    collection.upsert(
+                        embeddings=embeddings.tolist(), ids=batch_ids
+                    )
+                    pbar.update(len(batch_chunks))
+
+        logger.info(f"[{self.__class__.__name__}] Synchronization complete.")
+
+        self._clear_state()

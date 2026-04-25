@@ -5,13 +5,12 @@ from pathlib import Path
 
 from pydantic import PositiveInt
 
+from src.infrastructure.document.stores.bm25.sync import BM25SyncIndexStore
+from src.infrastructure.document.stores.chroma.sync import ChromaSyncIndexStore
+from src.infrastructure.document.stores.raw.sync import RawSyncIndexStore
+from src.infrastructure.document.stores.registry import SyncIndexStoreRegistry
 from src.infrastructure.indexer import Indexer
-from src.infrastructure.manifest.manager import ManifestManager
-from src.infrastructure.manifest.storages.disk import ManifestDiskStorage
-from src.infrastructure.stores.bm25 import BM25Store
-from src.infrastructure.stores.chroma import ChromaStore
-from src.infrastructure.stores.raw import RawChunkStore
-from src.infrastructure.stores.registry import StoreRegistry
+from src.infrastructure.repositories.manifest import ManifestRepository
 from src.utils.path_util import parse_extensions
 
 logger = logging.getLogger(__file__)
@@ -33,34 +32,32 @@ def entrypoint_index(
     repositories = list({repo.resolve() for repo in repositories})
     exts: list[str] = parse_extensions(extensions)
 
-    manifest_manager = ManifestManager(
-        storage=ManifestDiskStorage(
-            manifest_filepath,
-            repositories,
-            embedding_model_name,
-            chunk_size,
-            identity=[embedding_model_name, chunk_size],
-        )
+    manifest_repository = ManifestRepository(
+        manifest_filepath,
+        repositories,
+        embedding_model_name,
+        chunk_size,
+        identity=[embedding_model_name, chunk_size],
     )
 
     indexer = Indexer(
-        manifest_manager,
+        manifest_repository=manifest_repository,
         extensions=exts,
-        registry=StoreRegistry(
-            BM25Store(bm25_dirpath, enable=True),
-            ChromaStore(
+        index_store_registry=SyncIndexStoreRegistry(
+            BM25SyncIndexStore(bm25_dirpath, enable=True),
+            ChromaSyncIndexStore(
                 chroma_dirpath,
                 embedding_model_name,
                 batch_size=BATCH_SIZE,
                 enable=with_semantic,
             ),
-            RawChunkStore(chunks_filepath, True),
+            RawSyncIndexStore(chunks_filepath, True),
         ),
     )
     indexer.sync()
 
-    for repository in manifest_manager.manifest.repositories:
+    for repository in manifest_repository.manifest.repositories:
         indexer.index(repository)
 
     indexer.commit()
-    manifest_manager.commit()
+    manifest_repository.commit()

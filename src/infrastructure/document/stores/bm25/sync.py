@@ -1,0 +1,46 @@
+import logging
+
+import bm25s
+
+from src.domain.models.document import Document, DocumentStatus
+from src.infrastructure.document.stores.base import BaseSyncIndexStore
+
+logger = logging.getLogger(__file__)
+
+
+class BM25SyncIndexStore(BaseSyncIndexStore):
+    @property
+    def name(self) -> str:
+        return "BM25"
+
+    def add(self, document: Document, _: DocumentStatus) -> None:
+        return super().add(document, DocumentStatus.NEW)
+
+    def commit(self, _: bool) -> None:
+        if not self.enable or not self._add_documents:
+            return
+
+        total_docs = len(self._add_documents)
+        logger.info(
+            f"[{self.__class__.__name__}] Building index for "
+            f"{total_docs} documents..."
+        )
+
+        chunks: list[str] = []
+        chunk_ids: list[dict[str, str]] = []
+
+        for doc in self._add_documents:
+            chunks.extend(doc.chunks)
+            chunk_ids.extend({"id": cid} for cid in doc.chunk_ids)
+
+        chunk_tokens = bm25s.tokenize(chunks)
+        retriever = bm25s.BM25(corpus=chunk_ids)
+        retriever.index(chunk_tokens)
+        retriever.save(self._dirpath)
+
+        logger.info(
+            f"[{self.__class__.__name__}] Successfully saved index to "
+            f"'{self._dirpath}'."
+        )
+
+        self._clear_state()
