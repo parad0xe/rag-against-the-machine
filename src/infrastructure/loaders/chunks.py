@@ -1,16 +1,17 @@
 import json
 from pathlib import Path
 
+from src.application.ports.loader import ChunksLoaderInterface
 from src.domain.models.chunk import Chunk
 from src.utils.file import file_load_content
 
 
-class ChunksRepository:
+class ChunksLoader(ChunksLoaderInterface):
     def __init__(self, file_path: Path) -> None:
         self._file_path = file_path
         self._cache: dict[str, Chunk] | None = None
 
-    def get_chunks(self, chunk_ids: list[str]) -> dict[str, Chunk]:
+    def load(self, chunk_ids: list[str]) -> dict[str, Chunk]:
         if not self._file_path.exists():
             return {}
 

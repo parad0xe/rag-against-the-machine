@@ -6,12 +6,12 @@ from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
-from src.infrastructure.document.stores.base import IndexStoreSync
+from src.application.ports.index_store.store import IndexStoreSyncInterface
 
 logger = logging.getLogger(__file__)
 
 
-class ChromaIndexStoreSync(IndexStoreSync):
+class ChromaIndexStoreSync(IndexStoreSyncInterface):
     @property
     def name(self) -> str:
         return "Chroma"

@@ -12,11 +12,11 @@ from pydantic import (
     ValidationError,
 )
 
-from src.commands.index import entrypoint_index
-from src.commands.search import entrypoint_search
 from src.domain.exceptions.base import RagError
 from src.domain.exceptions.schema import SchemaValidationError
 from src.logging import LoggingSystem
+from src.presentation.cli.index import entrypoint_index
+from src.presentation.cli.search import entrypoint_search
 
 logger = logging.getLogger(__file__)
 

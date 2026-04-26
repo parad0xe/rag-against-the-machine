@@ -2,13 +2,13 @@ import json
 import logging
 from pathlib import Path
 
-from src.infrastructure.document.stores.base import IndexStoreSync
+from src.application.ports.index_store.store import IndexStoreSyncInterface
 from src.utils.file import file_load_content, file_write_json
 
 logger = logging.getLogger(__file__)
 
 
-class RawIndexStoreSync(IndexStoreSync):
+class RawIndexStoreSync(IndexStoreSyncInterface):
     @property
     def name(self) -> str:
         return "Raw"

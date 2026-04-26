@@ -6,7 +6,7 @@ from src.domain.models.document import Document
 from src.domain.models.manifest import ManifestFileCache
 
 
-class IndexStore(ABC):
+class IndexStoreInterface(ABC):
     @property
     @abstractmethod
     def name(self) -> str: ...
@@ -19,7 +19,7 @@ class IndexStore(ABC):
         return self._dir_path.exists()
 
 
-class IndexStoreQuery(IndexStore, ABC):
+class IndexStoreQueryInterface(IndexStoreInterface, ABC):
     @abstractmethod
     def _perform_search(self, query: str, k: int) -> list[str] | None: ...
 
@@ -39,7 +39,7 @@ class IndexStoreQuery(IndexStore, ABC):
         return self._perform_search(query, k)
 
 
-class IndexStoreSync(IndexStore, ABC):
+class IndexStoreSyncInterface(IndexStoreInterface, ABC):
     @abstractmethod
     def _perform_commit(self, require_reset: bool) -> None: ...
 

@@ -5,12 +5,17 @@ from pathlib import Path
 
 from pydantic import PositiveInt
 
-from src.infrastructure.document.stores.bm25.sync import BM25IndexStoreSync
-from src.infrastructure.document.stores.chroma.sync import ChromaIndexStoreSync
-from src.infrastructure.document.stores.raw.sync import RawIndexStoreSync
-from src.infrastructure.document.stores.registry import IndexStoreSyncRegistry
-from src.infrastructure.indexer import Indexer
-from src.infrastructure.manifest.manager import ManifestManager
+from src.application.ports.index_store.registry import IndexStoreSyncRegistry
+from src.application.services.indexer import Indexer
+from src.infrastructure.index_stores.bm25.sync import BM25IndexStoreSync
+from src.infrastructure.index_stores.chroma.sync import ChromaIndexStoreSync
+from src.infrastructure.index_stores.raw.sync import RawIndexStoreSync
+from src.infrastructure.loaders.document.document import DocumentLoader
+from src.infrastructure.loaders.file import LocalFileLoader
+from src.infrastructure.storage.manifest.json_storage import (
+    ManifestJSONStorage,
+)
+from src.infrastructure.storage.manifest.manager import ManifestManager
 from src.utils.common import parse_extensions
 
 logger = logging.getLogger(__file__)
@@ -34,12 +39,14 @@ def entrypoint_index(
 
     logger.info(f"loaded extensions: {parsed_extensions}")
 
-    manifest_manager = ManifestManager.load(
+    # TD: Systeme a ameliorer (trop verbeux)
+    manifest_manager = ManifestManager(
         file_path=manifest_file_path,
+        manifest_storage=ManifestJSONStorage(),
+        extensions=parsed_extensions,
         repositories=repositories,
         embedding_model_name=embedding_model_name,
         chunk_size=chunk_size,
-        extensions=parsed_extensions,
         fingerprint_seed=[embedding_model_name, chunk_size],
     )
 
@@ -56,6 +63,8 @@ def entrypoint_index(
             ),
             RawIndexStoreSync(chunks_file_path),
         ),
+        file_loader=LocalFileLoader(),
+        document_loader=DocumentLoader(),
     )
 
     for repository in repositories:

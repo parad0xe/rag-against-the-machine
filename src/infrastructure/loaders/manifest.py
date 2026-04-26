@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from typing import Iterable
 
+from src.application.ports.loader import ManifestLoaderInterface
 from src.domain.exceptions.schema import (
     SchemaInvalidJSONFormatError,
     SchemaInvalidJSONRootError,
@@ -14,9 +15,9 @@ from src.utils.file import file_load_content
 logger = logging.getLogger(__file__)
 
 
-class ManifestLoader:
-    @staticmethod
+class ManifestJSONLoader(ManifestLoaderInterface):
     def load(
+        self,
         file_path: Path,
         ignore_errors: bool = False,
     ) -> Manifest | None:
@@ -42,15 +43,15 @@ class ManifestLoader:
 
         return Manifest.model_validate(manifest_data)
 
-    @staticmethod
     def load_with_properties(
+        self,
         file_path: Path,
         repositories: list[Path],
         embedding_model_name: str,
         chunk_size: int,
         fingerprint_seed: Iterable[str | int | bool] | None = None,
     ) -> tuple[Manifest, bool]:
-        manifest = ManifestLoader.load(file_path, ignore_errors=True)
+        manifest = self.load(file_path, ignore_errors=True)
         fingerprint = compute_fingerprint(fingerprint_seed)
 
         if manifest:

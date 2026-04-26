@@ -2,48 +2,38 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Iterable
 
+from src.application.ports.storage import ManifestStorageInterface
 from src.domain.models.document import Document
 from src.domain.models.file import File
 from src.domain.models.manifest import Manifest, ManifestFileCache
-from src.infrastructure.manifest.loader import ManifestLoader
-from src.utils.file import file_write_json
 
 logger = logging.getLogger(__file__)
 
 
 class ManifestManager:
-    @classmethod
-    def load(
-        cls,
+    def __init__(
+        self,
         file_path: Path,
-        repositories: list[Path],
-        embedding_model_name: str,
-        chunk_size: int,
+        manifest_storage: ManifestStorageInterface,
         extensions: tuple[str] | list[str],
-        fingerprint_seed: Iterable[str | int | bool] | None = None,
-    ) -> ManifestManager:
-        manifest, mismatch = ManifestLoader.load_with_properties(
+        embedding_model_name: str,
+        repositories: list[Path],
+        chunk_size: int,
+        fingerprint_seed: list | None = None,
+    ) -> None:
+        self._file_path: Path = file_path
+        self._manifest_storage = manifest_storage
+
+        manifest, mismatch = manifest_storage.load(
             file_path=file_path,
-            embedding_model_name=embedding_model_name,
             repositories=repositories,
+            embedding_model_name=embedding_model_name,
             chunk_size=chunk_size,
             fingerprint_seed=fingerprint_seed,
         )
 
-        return cls(file_path, manifest, mismatch, extensions)
-
-    def __init__(
-        self,
-        file_path: Path,
-        manifest: Manifest,
-        fingerprint_mismatch: bool,
-        extensions: tuple[str] | list[str],
-    ) -> None:
-        self._file_path: Path = file_path
-
-        self.fingerprint_mismatch: bool = fingerprint_mismatch
+        self.fingerprint_mismatch: bool = mismatch
         self.manifest: Manifest = manifest
         self.expired_chunk_ids: set[str] = set()
 
@@ -69,9 +59,7 @@ class ManifestManager:
         )
 
     def commit(self) -> None:
-        file_write_json(
-            self._file_path, self.manifest.model_dump_json(indent=2)
-        )
+        self._manifest_storage.save(self._file_path, self.manifest)
 
     def __sync(self, extensions: tuple[str] | list[str]) -> None:
         exts_to_keep, exts_to_delete = self._get_extension_sets(extensions)

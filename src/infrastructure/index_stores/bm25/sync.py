@@ -2,14 +2,14 @@ import logging
 
 import bm25s
 
+from src.application.ports.index_store.store import IndexStoreSyncInterface
 from src.domain.models.document import Document
 from src.domain.models.manifest import ManifestFileCache
-from src.infrastructure.document.stores.base import IndexStoreSync
 
 logger = logging.getLogger(__file__)
 
 
-class BM25IndexStoreSync(IndexStoreSync):
+class BM25IndexStoreSync(IndexStoreSyncInterface):
     @property
     def name(self) -> str:
         return "BM25"
@@ -30,7 +30,7 @@ class BM25IndexStoreSync(IndexStoreSync):
     ) -> bool:
         return True
 
-    def _perform_commit(self, _: bool) -> None:
+    def _perform_commit(self, require_reset: bool) -> None:
         total_docs = len(self._add_documents)
         logger.info(
             f"[{self.__class__.__name__}] Building index for "

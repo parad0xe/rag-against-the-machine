@@ -1,17 +1,17 @@
+from src.application.ports.index_store.registry import IndexStoreQueryRegistry
+from src.application.ports.loader import ChunksLoaderInterface
 from src.domain.models.chunk import Chunk
 from src.domain.models.source import MinimalSource
-from src.infrastructure.document.stores.registry import IndexStoreQueryRegistry
-from src.infrastructure.repositories.chunks import ChunksRepository
 
 
 class Retriever:
     def __init__(
         self,
         index_store_registry: IndexStoreQueryRegistry,
-        chunks_repository: ChunksRepository,
+        chunks_loader: ChunksLoaderInterface,
     ) -> None:
         self._index_store_registry = index_store_registry
-        self._chunks_repository = chunks_repository
+        self._chunks_loader = chunks_loader
 
     def search(self, query: str, k: int = 10) -> list[MinimalSource]:
         pool_size = max(k * 30, 200)
@@ -25,7 +25,7 @@ class Retriever:
         top_results = self.__compute_rrf(search_results)[:k]
         top_ids = [cid for cid, _ in top_results]
 
-        chunks_data = self._chunks_repository.get_chunks(top_ids)
+        chunks_data = self._chunks_loader.load(top_ids)
 
         sources: list[MinimalSource] = []
         for cid, _ in top_results:

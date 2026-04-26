@@ -3,12 +3,12 @@ from pathlib import Path
 
 import bm25s
 
-from src.infrastructure.document.stores.base import IndexStoreQuery
+from src.application.ports.index_store.store import IndexStoreQueryInterface
 
 logger = logging.getLogger(__file__)
 
 
-class BM25IndexStoreQuery(IndexStoreQuery):
+class BM25IndexStoreQuery(IndexStoreQueryInterface):
     @property
     def name(self) -> str:
         return "BM25"

@@ -5,12 +5,14 @@ from typing import Any
 
 from tqdm import tqdm
 
-from src.infrastructure.document.loader import load_document
-from src.infrastructure.document.stores.registry import (
+from src.application.ports.index_store.registry import (
     IndexStoreSyncRegistry,
 )
-from src.infrastructure.file.loader import load_file
-from src.infrastructure.manifest.manager import ManifestManager
+from src.application.ports.loader import (
+    DocumentLoaderInterface,
+    FileLoaderInterface,
+)
+from src.infrastructure.storage.manifest.manager import ManifestManager
 from src.utils.file import ensure_valid_dir_path, iter_file_paths
 
 logger = logging.getLogger(__file__)
@@ -22,12 +24,16 @@ class Indexer:
         manifest_manager: ManifestManager,
         extensions: list[str],
         index_store_registry: IndexStoreSyncRegistry,
+        file_loader: FileLoaderInterface,
+        document_loader: DocumentLoaderInterface,
     ) -> None:
         self._manifest_manager: ManifestManager = manifest_manager
         self._index_store_registry: IndexStoreSyncRegistry = (
             index_store_registry
         )
         self._extensions: list[str] = extensions
+        self._file_loader: FileLoaderInterface = file_loader
+        self._document_loader: DocumentLoaderInterface = document_loader
         self._viewed_file_paths: set[Path] = set()
 
         for store in index_store_registry.stores:
@@ -67,13 +73,12 @@ class Indexer:
                     continue
                 self._viewed_file_paths.add(file_path)
 
-                file = load_file(file_path, ignore_errors=True)
+                file = self._file_loader.load(file_path, ignore_errors=True)
                 if not file:
                     continue
 
                 cached_file = self._manifest_manager.get(file)
-
-                document = load_document(
+                document = self._document_loader.load(
                     file=file,
                     chunk_size=self._manifest_manager.manifest.chunk_size,
                     cached_file=cached_file,
@@ -107,6 +112,8 @@ class Indexer:
         logger.info("Committing changes to stores.")
 
         for store in self._index_store_registry.stores:
-            store.commit(self._manifest_manager.fingerprint_mismatch)
+            store.commit(
+                require_reset=self._manifest_manager.fingerprint_mismatch
+            )
 
         self._manifest_manager.commit()

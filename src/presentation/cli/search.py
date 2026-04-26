@@ -10,13 +10,13 @@ from rich.rule import Rule
 from rich.text import Text
 from transformers import pipeline
 
-from src.infrastructure.document.stores.bm25.query import BM25IndexStoreQuery
-from src.infrastructure.document.stores.chroma.query import (
+from src.application.ports.index_store.registry import IndexStoreQueryRegistry
+from src.application.services.retriever import Retriever
+from src.infrastructure.index_stores.bm25.query import BM25IndexStoreQuery
+from src.infrastructure.index_stores.chroma.query import (
     ChromaIndexStoreQuery,
 )
-from src.infrastructure.document.stores.registry import IndexStoreQueryRegistry
-from src.infrastructure.repositories.chunks import ChunksRepository
-from src.infrastructure.retriever import Retriever
+from src.infrastructure.loaders.chunks import ChunksLoader
 from src.utils.file import ensure_valid_dir_path
 
 logger = logging.getLogger(__file__)
@@ -73,7 +73,7 @@ def entrypoint_search(
                 weight=0.35,
             ),
         ),
-        chunks_repository=ChunksRepository(chunks_file_path),
+        chunks_loader=ChunksLoader(chunks_file_path),
     )
     original_query = query
     query = Translator().translate_to_english(query)
@@ -100,7 +100,6 @@ def entrypoint_search(
         content.append(f"{source.file_path}\n", style="green")
         content.append("Position : ", style="bold magenta")
 
-        # Regroupement des index sur une seule ligne avec une flèche
         content.append(
             f"Chars {source.first_character_index} ➔ {source.last_character_index}",
             style="yellow",

@@ -1,16 +1,16 @@
 from abc import ABC
 from typing import Generic, TypeVar
 
-from src.infrastructure.document.stores.base import (
-    IndexStore,
-    IndexStoreQuery,
-    IndexStoreSync,
+from src.application.ports.index_store.store import (
+    IndexStoreInterface,
+    IndexStoreQueryInterface,
+    IndexStoreSyncInterface,
 )
 
-T = TypeVar("T", bound=IndexStore)
+T = TypeVar("T", bound=IndexStoreInterface)
 
 
-class IndexStoreRegistry(ABC, Generic[T]):
+class IndexStoreRegistryInterface(ABC, Generic[T]):
     def __init__(self, *stores: T) -> None:
         self.stores: tuple[T, ...] = stores
 
@@ -25,9 +25,13 @@ class IndexStoreRegistry(ABC, Generic[T]):
         return None
 
 
-class IndexStoreQueryRegistry(IndexStoreRegistry[IndexStoreQuery]):
+class IndexStoreQueryRegistry(
+    IndexStoreRegistryInterface[IndexStoreQueryInterface]
+):
     pass
 
 
-class IndexStoreSyncRegistry(IndexStoreRegistry[IndexStoreSync]):
+class IndexStoreSyncRegistry(
+    IndexStoreRegistryInterface[IndexStoreSyncInterface]
+):
     pass
