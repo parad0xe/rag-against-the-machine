@@ -13,17 +13,16 @@ class RawIndexStoreSync(IndexStoreSync):
     def name(self) -> str:
         return "Raw"
 
-    def __init__(self, file_path: Path, enable: bool = True) -> None:
-        super().__init__(file_path.parent, enable)
+    def __init__(
+        self,
+        file_path: Path,
+        enable: bool = True,
+        addition_enable: bool = True,
+    ) -> None:
+        super().__init__(file_path.parent, enable, addition_enable)
         self._file_path = file_path
 
-    def commit(self, require_reset_before: bool) -> None:
-        if not self.enable:
-            return
-
-        if not self._add_documents and not self._delete_chunk_ids:
-            return
-
+    def _perform_commit(self, require_reset_before: bool) -> None:
         data: dict = {}
         if self._file_path.exists() and not require_reset_before:
             content = file_load_content(

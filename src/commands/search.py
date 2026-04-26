@@ -65,7 +65,7 @@ def entrypoint_search(
 
     retriever = Retriever(
         index_store_registry=IndexStoreQueryRegistry(
-            BM25IndexStoreQuery(bm25_dir_path, enable=True, weight=0.65),
+            BM25IndexStoreQuery(bm25_dir_path, weight=0.65),
             ChromaIndexStoreQuery(
                 chroma_dir_path,
                 embedding_model_name,

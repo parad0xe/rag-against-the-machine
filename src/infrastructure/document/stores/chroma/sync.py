@@ -22,15 +22,13 @@ class ChromaIndexStoreSync(IndexStoreSync):
         embedding_model_name: str,
         batch_size: int = 32,
         enable: bool = True,
+        addition_enable: bool = True,
     ) -> None:
-        super().__init__(dir_path, enable)
+        super().__init__(dir_path, enable, addition_enable)
         self._embedding_model_name: str = embedding_model_name
         self._batch_size: int = batch_size
 
-    def commit(self, require_reset: bool) -> None:
-        if not self._add_documents and not self._delete_chunk_ids:
-            return
-
+    def _perform_commit(self, require_reset: bool) -> None:
         logger.info(
             f"[{self.__class__.__name__}] Synchronizing index: "
             f"{len(self._add_documents)} additions, "

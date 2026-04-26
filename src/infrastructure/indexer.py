@@ -5,13 +5,12 @@ from typing import Any
 
 from tqdm import tqdm
 
-from src.domain.models.document import DocumentStatus
-from src.domain.models.manifest import Manifest
 from src.infrastructure.document.loader import load_document
 from src.infrastructure.document.stores.registry import (
     IndexStoreSyncRegistry,
 )
-from src.infrastructure.repositories.manifest import ManifestRepository
+from src.infrastructure.file.loader import load_file
+from src.infrastructure.manifest.manager import ManifestManager
 from src.utils.file import ensure_valid_dir_path, iter_file_paths
 
 logger = logging.getLogger(__file__)
@@ -20,79 +19,19 @@ logger = logging.getLogger(__file__)
 class Indexer:
     def __init__(
         self,
-        manifest_repository: ManifestRepository,
+        manifest_manager: ManifestManager,
         extensions: list[str],
         index_store_registry: IndexStoreSyncRegistry,
     ) -> None:
-        self._manifest_repository: ManifestRepository = manifest_repository
+        self._manifest_manager: ManifestManager = manifest_manager
         self._index_store_registry: IndexStoreSyncRegistry = (
             index_store_registry
         )
         self._extensions: list[str] = extensions
         self._viewed_file_paths: set[Path] = set()
-        logger.info(f"extensions: {extensions}")
 
-    def sync(self) -> None:
-        logger.info("Starting synchronization of manifest and stores.")
-        manifest: Manifest = self._manifest_repository.manifest
-        expired_chunk_ids: set[str] = set()
-
-        if self._extensions[0] == "*":
-            target_exts = set(manifest.files_by_ext.keys())
-            current_exts = set(manifest.files_by_ext.keys())
-        else:
-            target_exts = set(self._extensions)
-            current_exts = set(self._extensions).union(
-                manifest.files_by_ext.keys()
-            )
-
-        exts_to_delete = current_exts - target_exts
-        exts_to_keep = current_exts.intersection(target_exts)
-
-        resolved_repos = {
-            Path(repo).resolve() for repo in manifest.repositories
-        }
-
-        for ext in exts_to_delete:
-            if ext in manifest.files_by_ext:
-                for cached_file in manifest.files_by_ext[ext].values():
-                    for store in self._index_store_registry.stores:
-                        store.delete(cached_file.chunk_ids)
-                del manifest.files_by_ext[ext]
-
-        for ext in exts_to_keep:
-            if ext not in manifest.files_by_ext:
-                continue
-
-            missing_file_ids = []
-            for file_id, cached_file in manifest.files_by_ext[ext].items():
-                cached_path = Path(cached_file.file_path)
-
-                if not cached_path.exists():
-                    for store in self._index_store_registry.stores:
-                        store.delete(cached_file.chunk_ids)
-                    expired_chunk_ids.update(cached_file.chunk_ids)
-                    missing_file_ids.append(file_id)
-                else:
-                    resolved_parents = cached_path.resolve().parents
-                    if not any(
-                        repo in resolved_parents for repo in resolved_repos
-                    ):
-                        for store in self._index_store_registry.stores:
-                            store.delete(cached_file.chunk_ids)
-                        expired_chunk_ids.update(cached_file.chunk_ids)
-                        missing_file_ids.append(file_id)
-
-            for file_id in missing_file_ids:
-                del manifest.files_by_ext[ext][file_id]
-
-            if not manifest.files_by_ext[ext]:
-                del manifest.files_by_ext[ext]
-
-        logger.debug(
-            f"Synchronization complete. expired chunks: "
-            f"{len(expired_chunk_ids)}"
-        )
+        for store in index_store_registry.stores:
+            store.delete(manifest_manager.expired_chunk_ids)
 
     def index(self, repository: Path) -> None:
         logger.info(f"Starting indexing for repository: {repository}")
@@ -103,6 +42,11 @@ class Indexer:
             self._extensions,
             recursive=True,
         )
+
+        if iterator is None:
+            logger.warning(f"Invalid repository path: {repository}. Skipped")
+            return
+
         stats: OrderedDict[str, Any] = OrderedDict(
             documents=0,
             chunks=0,
@@ -123,31 +67,25 @@ class Indexer:
                     continue
                 self._viewed_file_paths.add(file_path)
 
-                document = load_document(
-                    file_path,
-                    self._manifest_repository.manifest.chunk_size,
-                    ignore_errors=True,
-                )
-                if not document:
+                file = load_file(file_path, ignore_errors=True)
+                if not file:
                     continue
+
+                cached_file = self._manifest_manager.get(file)
+
+                document = load_document(
+                    file=file,
+                    chunk_size=self._manifest_manager.manifest.chunk_size,
+                    cached_file=cached_file,
+                )
 
                 stats["documents"] += 1
                 stats["chunks"] += len(document.chunk_ids)
 
                 for store in self._index_store_registry.stores:
-                    status = self._manifest_repository.get_status(
-                        document, store
-                    )
+                    store.track(document, cached_file=cached_file)
 
-                    if status == DocumentStatus.UPDATE:
-                        if diff := self._manifest_repository.diff(document):
-                            store.delete(set(diff))
-
-                    store.add(document, status)
-
-                self._manifest_repository.update(
-                    document, self._index_store_registry
-                )
+                self._manifest_manager.track(document)
 
                 pbar.set_postfix(ordered_dict=stats)
 
@@ -156,14 +94,19 @@ class Indexer:
             num_chunks_to_add = sum(
                 [len(x.chunk_ids) for x in store._add_documents]
             )
+            num_documents_to_add = len(store._add_documents)
             logger.debug(
-                f"[{store.__class__.__name__}] chunks queue("
-                f"add: {num_chunks_to_add} / delete: {num_chunks_to_delete}"
-                ")"
+                f"[{store.__class__.__name__}] "
+                "documents"
+                f"(add: {num_documents_to_add}) "
+                "chunks"
+                f"(add: {num_chunks_to_add} / delete: {num_chunks_to_delete})"
             )
 
     def commit(self) -> None:
         logger.info("Committing changes to stores.")
 
         for store in self._index_store_registry.stores:
-            store.commit(self._manifest_repository.fingerprint_mismatch)
+            store.commit(self._manifest_manager.fingerprint_mismatch)
+
+        self._manifest_manager.commit()

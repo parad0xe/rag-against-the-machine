@@ -2,7 +2,8 @@ import logging
 
 import bm25s
 
-from src.domain.models.document import Document, DocumentStatus
+from src.domain.models.document import Document
+from src.domain.models.manifest import ManifestFileCache
 from src.infrastructure.document.stores.base import IndexStoreSync
 
 logger = logging.getLogger(__file__)
@@ -13,13 +14,23 @@ class BM25IndexStoreSync(IndexStoreSync):
     def name(self) -> str:
         return "BM25"
 
-    def add(self, document: Document, _: DocumentStatus) -> None:
-        return super().add(document, DocumentStatus.NEW)
+    def _requires_deletion(
+        self,
+        document: Document,
+        cached_file: ManifestFileCache | None,
+        document_has_changed: bool,
+    ) -> bool:
+        return bool(cached_file and self.name in cached_file.stores)
 
-    def commit(self, _: bool) -> None:
-        if not self.enable or not self._add_documents:
-            return
+    def _requires_addition(
+        self,
+        document: Document,
+        cached_file: ManifestFileCache | None,
+        document_has_changed: bool,
+    ) -> bool:
+        return True
 
+    def _perform_commit(self, _: bool) -> None:
         total_docs = len(self._add_documents)
         logger.info(
             f"[{self.__class__.__name__}] Building index for "

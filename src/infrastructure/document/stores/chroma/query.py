@@ -28,10 +28,7 @@ class ChromaIndexStoreQuery(IndexStoreQuery):
         self._collection: Collection | None = None
         self._model: SentenceTransformer | None = None
 
-    def search(self, query: str, k: int) -> list[str] | None:
-        if not self.enable or not self._dir_path.exists():
-            return []
-
+    def _perform_search(self, query: str, k: int) -> list[str] | None:
         if self._collection is None:
             client = chromadb.PersistentClient(
                 path=str(self._dir_path),

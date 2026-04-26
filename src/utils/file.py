@@ -21,7 +21,10 @@ def iter_file_paths(
     basepath: Path,
     extensions: list[str],
     recursive: bool = False,
-) -> Generator[Path, None, None]:
+) -> Generator[Path, None, None] | None:
+    if not basepath.exists():
+        return None
+
     for ext in extensions:
         pattern = f"*.{ext}"
 
@@ -32,6 +35,8 @@ def iter_file_paths(
         for path in path_generator:
             if path.is_file():
                 yield Path(path)
+
+    return None
 
 
 def ensure_valid_file_path(path: Path) -> None:

@@ -10,7 +10,7 @@ from src.infrastructure.document.stores.chroma.sync import ChromaIndexStoreSync
 from src.infrastructure.document.stores.raw.sync import RawIndexStoreSync
 from src.infrastructure.document.stores.registry import IndexStoreSyncRegistry
 from src.infrastructure.indexer import Indexer
-from src.infrastructure.repositories.manifest import ManifestRepository
+from src.infrastructure.manifest.manager import ManifestManager
 from src.utils.common import parse_extensions
 
 logger = logging.getLogger(__file__)
@@ -30,33 +30,35 @@ def entrypoint_index(
     with_semantic: bool = False,
 ) -> None:
     repositories = list({repo.resolve() for repo in repositories})
+    parsed_extensions: list[str] = parse_extensions(extensions)
 
-    manifest_repository = ManifestRepository(
-        manifest_file_path,
-        repositories,
-        embedding_model_name,
-        chunk_size,
+    logger.info(f"loaded extensions: {parsed_extensions}")
+
+    manifest_manager = ManifestManager.load(
+        file_path=manifest_file_path,
+        repositories=repositories,
+        embedding_model_name=embedding_model_name,
+        chunk_size=chunk_size,
+        extensions=parsed_extensions,
         fingerprint_seed=[embedding_model_name, chunk_size],
     )
 
     indexer = Indexer(
-        manifest_repository=manifest_repository,
-        extensions=parse_extensions(extensions),
+        manifest_manager=manifest_manager,
+        extensions=parsed_extensions,
         index_store_registry=IndexStoreSyncRegistry(
-            BM25IndexStoreSync(bm25_dir_path, enable=True),
+            BM25IndexStoreSync(bm25_dir_path),
             ChromaIndexStoreSync(
                 chroma_dir_path,
                 embedding_model_name,
                 batch_size=BATCH_SIZE,
-                enable=with_semantic,
+                addition_enable=with_semantic,
             ),
-            RawIndexStoreSync(chunks_file_path, True),
+            RawIndexStoreSync(chunks_file_path),
         ),
     )
-    indexer.sync()
 
-    for repository in manifest_repository.manifest.repositories:
+    for repository in repositories:
         indexer.index(repository)
 
     indexer.commit()
-    manifest_repository.commit()

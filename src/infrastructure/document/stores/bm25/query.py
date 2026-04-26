@@ -22,10 +22,7 @@ class BM25IndexStoreQuery(IndexStoreQuery):
         super().__init__(dir_path, enable, weight)
         self._retriever: bm25s.BM25 | None = None
 
-    def search(self, query: str, k: int) -> list[str] | None:
-        if not self.enable or not self._dir_path.exists():
-            return []
-
+    def _perform_search(self, query: str, k: int) -> list[str] | None:
         if self._retriever is None:
             self._retriever = bm25s.BM25.load(self._dir_path, load_corpus=True)
 
