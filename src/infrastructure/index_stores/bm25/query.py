@@ -34,11 +34,12 @@ class BM25IndexStoreQuery(IndexStoreQueryInterface):
         if actual_k == 0:
             return []
 
-        query_tokens = bm25s.tokenize(query)
+        query_tokens = bm25s.tokenize(query, show_progress=False)
         results, _ = self._retriever.retrieve(
             query_tokens,
             k=actual_k,
             n_threads=4,
+            show_progress=False,
         )
 
         if results.shape[1] == 0:

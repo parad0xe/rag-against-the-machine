@@ -46,5 +46,6 @@ class ManifestLoaderInterface(ABC):
         repositories: list[Path],
         embedding_model_name: str,
         chunk_size: int,
+        with_semantic: bool,
         fingerprint_seed: list | None = None,
     ) -> tuple[Manifest, bool]: ...

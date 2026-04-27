@@ -4,64 +4,48 @@ from pathlib import Path
 from pydantic import (
     validate_call,
 )
-from rich.console import Console
-from rich.panel import Panel
-from rich.rule import Rule
-from rich.text import Text
-from transformers import pipeline
 
-from src.application.ports.index_store.registry import IndexStoreQueryRegistry
 from src.application.services.retriever import Retriever
 from src.infrastructure.index_stores.bm25.query import BM25IndexStoreQuery
 from src.infrastructure.index_stores.chroma.query import (
     ChromaIndexStoreQuery,
 )
+from src.infrastructure.index_stores.registry import IndexStoreQueryRegistry
 from src.infrastructure.loaders.chunks import ChunksLoader
+from src.infrastructure.loaders.manifest import ManifestJSONLoader
+from src.infrastructure.translators.hugging_face import HuggingFaceTranslator
+from src.presentation.api.console.minimal_search import (
+    MinimalSearchDisplayConsole,
+)
 from src.utils.file import ensure_valid_dir_path
 
 logger = logging.getLogger(__file__)
 
 
-TRANSLATION_MODEL: str = "Helsinki-NLP/opus-mt-mul-en"
-
-
-class Translator:
-    def __init__(self) -> None:
-        self.translator = pipeline(
-            "translation",
-            model=TRANSLATION_MODEL,
-        )
-
-    def translate_to_english(self, text: str) -> str:
-        if not text.strip():
-            return ""
-
-        result = self.translator(
-            text,
-            max_length=512,
-        )
-
-        return str(result[0]["translation_text"])
-
-
 @validate_call()
 def entrypoint_search(
-    query: str,
+    original_query: str,
     bm25_dir_path: Path,
     chroma_dir_path: Path,
     chunks_file_path: Path,
+    manifest_file_path: Path,
     embedding_model_name: str = "all-MiniLM-L6-v2",
     k: int = 10,
 ) -> None:
-    console = Console()
-    console.print()
+    ensure_valid_dir_path(bm25_dir_path)
+    ensure_valid_dir_path(chroma_dir_path)
 
-    console.print(
-        Rule(
-            title=f"[bold cyan]🔎 Search Results for: '{query}'[/]",
-            style="cyan",
-        )
+    display = MinimalSearchDisplayConsole()
+    display.title(original_query)
+
+    translated_query = HuggingFaceTranslator().translate_to_english(
+        original_query
     )
+
+    if original_query != translated_query:
+        display.subquery(translated_query)
+
+    manifest = ManifestJSONLoader().load(manifest_file_path)
 
     retriever = Retriever(
         index_store_registry=IndexStoreQueryRegistry(
@@ -69,56 +53,22 @@ def entrypoint_search(
             ChromaIndexStoreQuery(
                 chroma_dir_path,
                 embedding_model_name,
-                enable=True,  # faire en sorte de selectionner en fonction 'with semantic' dans le manifest
+                enable=manifest.with_semantic,
                 weight=0.35,
             ),
         ),
         chunks_loader=ChunksLoader(chunks_file_path),
     )
-    original_query = query
-    query = Translator().translate_to_english(query)
 
-    if original_query != query:
-        console.print(
-            f"[italic magenta]Translated to: '{query}'[/]", justify="center"
+    with display.loader():
+        result = retriever.search(
+            original_query=original_query,
+            tranlated_query=translated_query,
+            k=k,
         )
-    console.print()
 
-    ensure_valid_dir_path(bm25_dir_path)
-    ensure_valid_dir_path(chroma_dir_path)
-
-    logger.info(f"Executing hybrid search for query: '{query}'")
-    results = retriever.search(query, k=k)
-
-    if not results:
-        console.print("[bold red]No results found.[/]\n")
+    if not result:
+        display.noresult()
         return
 
-    for i, source in enumerate(results):
-        content = Text()
-        content.append("File     : ", style="bold magenta")
-        content.append(f"{source.file_path}\n", style="green")
-        content.append("Position : ", style="bold magenta")
-
-        content.append(
-            f"Chars {source.first_character_index} ➔ {source.last_character_index}",
-            style="yellow",
-        )
-
-        panel = Panel(
-            content,
-            title=f"[bold yellow]Rank {i + 1}[/]",
-            title_align="left",
-            border_style="blue",
-        )
-        console.print(panel)
-
-    # Pied de page
-    console.print()
-    console.print(
-        Rule(
-            title=f"[bold cyan]Total results: {len(results)}[/]",
-            style="cyan",
-        )
-    )
-    console.print()
+    display.results(result)

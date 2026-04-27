@@ -15,5 +15,6 @@ class ManifestStorageInterface(ABC):
         embedding_model_name: str,
         repositories: list[Path],
         chunk_size: int,
+        with_semantic: bool,
         fingerprint_seed: list | None = None,
     ) -> tuple[Manifest, bool]: ...

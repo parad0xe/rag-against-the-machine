@@ -20,6 +20,7 @@ class ManifestManager:
         embedding_model_name: str,
         repositories: list[Path],
         chunk_size: int,
+        with_semantic: bool,
         fingerprint_seed: list | None = None,
     ) -> None:
         self._file_path: Path = file_path
@@ -30,6 +31,7 @@ class ManifestManager:
             repositories=repositories,
             embedding_model_name=embedding_model_name,
             chunk_size=chunk_size,
+            with_semantic=with_semantic,
             fingerprint_seed=fingerprint_seed,
         )
 

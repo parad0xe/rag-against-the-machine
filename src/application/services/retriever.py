@@ -1,24 +1,37 @@
-from src.application.ports.index_store.registry import IndexStoreQueryRegistry
+from src.application.ports.index_store.registry import (
+    IndexStoreRegistryInterface,
+)
+from src.application.ports.index_store.store import IndexStoreQueryInterface
 from src.application.ports.loader import ChunksLoaderInterface
 from src.domain.models.chunk import Chunk
+from src.domain.models.search import MinimalSearchResults
 from src.domain.models.source import MinimalSource
+from src.utils.common import md5
 
 
 class Retriever:
     def __init__(
         self,
-        index_store_registry: IndexStoreQueryRegistry,
+        index_store_registry: IndexStoreRegistryInterface[
+            IndexStoreQueryInterface
+        ],
         chunks_loader: ChunksLoaderInterface,
     ) -> None:
         self._index_store_registry = index_store_registry
         self._chunks_loader = chunks_loader
 
-    def search(self, query: str, k: int = 10) -> list[MinimalSource]:
+    def search(
+        self,
+        original_query: str,
+        tranlated_query: str,
+        k: int = 10,
+        question_id: str | None = None,
+    ) -> MinimalSearchResults:
         pool_size = max(k * 30, 200)
         search_results: list[tuple[list[str], float]] = []
 
         for store in self._index_store_registry.active_stores:
-            res = store.search(query, k=pool_size)
+            res = store.search(tranlated_query, k=pool_size)
             if res:
                 search_results.append((res, store.weight))
 
@@ -41,7 +54,15 @@ class Retriever:
             )
             sources.append(source)
 
-        return sources
+        question_id = (
+            md5(original_query) if question_id is None else question_id
+        )
+
+        return MinimalSearchResults(
+            question_id=question_id,
+            question=original_query,
+            retrieved_sources=sources,
+        )
 
     def __compute_rrf(
         self,

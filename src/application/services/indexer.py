@@ -6,8 +6,9 @@ from typing import Any
 from tqdm import tqdm
 
 from src.application.ports.index_store.registry import (
-    IndexStoreSyncRegistry,
+    IndexStoreRegistryInterface,
 )
+from src.application.ports.index_store.store import IndexStoreSyncInterface
 from src.application.ports.loader import (
     DocumentLoaderInterface,
     FileLoaderInterface,
@@ -23,14 +24,14 @@ class Indexer:
         self,
         manifest_manager: ManifestManager,
         extensions: list[str],
-        index_store_registry: IndexStoreSyncRegistry,
+        index_store_registry: IndexStoreRegistryInterface[
+            IndexStoreSyncInterface
+        ],
         file_loader: FileLoaderInterface,
         document_loader: DocumentLoaderInterface,
     ) -> None:
         self._manifest_manager: ManifestManager = manifest_manager
-        self._index_store_registry: IndexStoreSyncRegistry = (
-            index_store_registry
-        )
+        self._index_store_registry = index_store_registry
         self._extensions: list[str] = extensions
         self._file_loader: FileLoaderInterface = file_loader
         self._document_loader: DocumentLoaderInterface = document_loader

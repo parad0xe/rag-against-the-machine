@@ -5,11 +5,11 @@ from pathlib import Path
 
 from pydantic import PositiveInt
 
-from src.application.ports.index_store.registry import IndexStoreSyncRegistry
 from src.application.services.indexer import Indexer
 from src.infrastructure.index_stores.bm25.sync import BM25IndexStoreSync
 from src.infrastructure.index_stores.chroma.sync import ChromaIndexStoreSync
 from src.infrastructure.index_stores.raw.sync import RawIndexStoreSync
+from src.infrastructure.index_stores.registry import IndexStoreSyncRegistry
 from src.infrastructure.loaders.document.document import DocumentLoader
 from src.infrastructure.loaders.file import LocalFileLoader
 from src.infrastructure.storage.manifest.json_storage import (
@@ -47,6 +47,7 @@ def entrypoint_index(
         repositories=repositories,
         embedding_model_name=embedding_model_name,
         chunk_size=chunk_size,
+        with_semantic=with_semantic,
         fingerprint_seed=[embedding_model_name, chunk_size],
     )
 

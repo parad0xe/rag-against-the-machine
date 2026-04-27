@@ -49,11 +49,13 @@ class ManifestJSONLoader(ManifestLoaderInterface):
         repositories: list[Path],
         embedding_model_name: str,
         chunk_size: int,
+        with_semantic: bool,
         fingerprint_seed: Iterable[str | int | bool] | None = None,
     ) -> tuple[Manifest, bool]:
         manifest = self.load(file_path, ignore_errors=True)
         fingerprint = compute_fingerprint(fingerprint_seed)
 
+        # TD: Refactoriser, l'ajout d'une variable est sujet a oublie entre if et else
         if manifest:
             fingerprint_mismatch = manifest.fingerprint != fingerprint
 
@@ -61,6 +63,7 @@ class ManifestJSONLoader(ManifestLoaderInterface):
             manifest.repositories = repositories.copy()
             manifest.embedding_model_name = embedding_model_name
             manifest.fingerprint = fingerprint
+            manifest.with_semantic = with_semantic
 
             return manifest, fingerprint_mismatch
         else:
@@ -69,5 +72,6 @@ class ManifestJSONLoader(ManifestLoaderInterface):
                 repositories=repositories,
                 chunk_size=chunk_size,
                 fingerprint=fingerprint,
+                with_semantic=with_semantic,
             )
             return new_manifest, False

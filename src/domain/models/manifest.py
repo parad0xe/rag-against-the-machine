@@ -18,6 +18,7 @@ class Manifest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     embedding_model_name: str
+    with_semantic: bool
     repositories: list[Path]
     chunk_size: PositiveInt
     files_by_ext: dict[str, dict[str, ManifestFileCache]] = Field(

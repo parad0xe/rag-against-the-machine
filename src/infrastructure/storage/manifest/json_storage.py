@@ -16,6 +16,7 @@ class ManifestJSONStorage(ManifestStorageInterface):
         embedding_model_name: str,
         repositories: list[Path],
         chunk_size: int,
+        with_semantic: bool,
         fingerprint_seed: list | None = None,
     ) -> tuple[Manifest, bool]:
         return ManifestJSONLoader().load_with_properties(
@@ -23,5 +24,6 @@ class ManifestJSONStorage(ManifestStorageInterface):
             embedding_model_name=embedding_model_name,
             repositories=repositories,
             chunk_size=chunk_size,
+            with_semantic=with_semantic,
             fingerprint_seed=fingerprint_seed,
         )
