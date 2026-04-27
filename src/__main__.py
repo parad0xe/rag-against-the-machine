@@ -17,22 +17,31 @@ from src.domain.exceptions.schema import SchemaValidationError
 from src.logging import LoggingSystem
 from src.presentation.cli.index import entrypoint_index
 from src.presentation.cli.search import entrypoint_search
+from src.presentation.cli.search_dataset import entrypoint_search_dataset
 
 logger = logging.getLogger(__file__)
 
 DEFAULT_REPOSITORY_DIRPATH: str = "vllm-0.10.1"
 
-PROCESSED_DIR: Path = Path("data/processed")
-BM25_DIRPATH: Path = PROCESSED_DIR / "bm25_index"
-CHROMA_DIRPATH: Path = PROCESSED_DIR / "chroma_index"
-MANIFEST_FILEPATH: Path = PROCESSED_DIR / "manifest.json"
-CHUNK_FILEPATH: Path = PROCESSED_DIR / "chunks.json"
+PROCESSED_DIR_PATH: Path = Path("data/processed")
+BM25_DIRPATH: Path = PROCESSED_DIR_PATH / "bm25_index"
+CHROMA_DIRPATH: Path = PROCESSED_DIR_PATH / "chroma_index"
+MANIFEST_FILEPATH: Path = PROCESSED_DIR_PATH / "manifest.json"
+CHUNK_FILEPATH: Path = PROCESSED_DIR_PATH / "chunks.json"
 EMBEDDING_LLM_MODEL: str = "all-MiniLM-L6-v2"
+
+DATASET_DIR_PATH: Path = Path("datasets_public/public")
+UNANSWERED_FILEPATH: Path = (
+    DATASET_DIR_PATH / "UnansweredQuestions/dataset_code_public.json"
+)
+
+DATASET_OUTPUT: Path = Path("data/output")
+DATASET_SEARCH_OUTPUT: Path = DATASET_OUTPUT / "search_results.json"
 
 
 class App:
     def __init__(self) -> None:
-        os.makedirs(PROCESSED_DIR, exist_ok=True)
+        os.makedirs(PROCESSED_DIR_PATH, exist_ok=True)
 
     def index(
         self,
@@ -82,9 +91,27 @@ class App:
             embedding_model_name=EMBEDDING_LLM_MODEL,
         )
 
-    def search_dataset(self, verbose: int = 0) -> None:
+    def search_dataset(
+        self,
+        save_dir_path: str = str(DATASET_SEARCH_OUTPUT),
+        dataset_file_path: str = str(UNANSWERED_FILEPATH),
+        k: int = 10,
+        verbose: int = 0,
+    ) -> None:
+        verbose = TypeAdapter(NonNegativeInt).validate_python(verbose)
+
         self._init_logging(verbose)
-        raise NotImplementedError("App.search_dataset")
+
+        entrypoint_search_dataset(
+            dataset_file_path=Path(dataset_file_path),
+            save_dir_path=Path(save_dir_path),
+            k=k,
+            bm25_dir_path=BM25_DIRPATH,
+            chunks_file_path=CHUNK_FILEPATH,
+            chroma_dir_path=CHROMA_DIRPATH,
+            manifest_file_path=MANIFEST_FILEPATH,
+            embedding_model_name=EMBEDDING_LLM_MODEL,
+        )
 
     def answer(self, verbose: int = 0) -> None:
         verbose = TypeAdapter(NonNegativeInt).validate_python(verbose)

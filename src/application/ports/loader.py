@@ -5,6 +5,7 @@ from src.domain.models.chunk import Chunk
 from src.domain.models.document import Document
 from src.domain.models.file import File
 from src.domain.models.manifest import Manifest, ManifestFileCache
+from src.domain.models.rag import RagDataset
 
 
 class FileLoaderInterface(ABC):
@@ -14,6 +15,15 @@ class FileLoaderInterface(ABC):
         file_path: Path,
         ignore_errors: bool = False,
     ) -> File | None: ...
+
+
+class RagDatasetLoaderInterface(ABC):
+    @abstractmethod
+    def load(
+        self,
+        file_path: Path,
+        ignore_errors: bool = False,
+    ) -> RagDataset | None: ...
 
 
 class DocumentLoaderInterface(ABC):

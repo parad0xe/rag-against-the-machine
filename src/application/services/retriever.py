@@ -1,9 +1,13 @@
+from typing import Generator
+
 from src.application.ports.index_store.registry import (
     IndexStoreRegistryInterface,
 )
 from src.application.ports.index_store.store import IndexStoreQueryInterface
 from src.application.ports.loader import ChunksLoaderInterface
+from src.application.ports.translator import TranslatorInterface
 from src.domain.models.chunk import Chunk
+from src.domain.models.rag import RagDataset
 from src.domain.models.search import MinimalSearchResults
 from src.domain.models.source import MinimalSource
 from src.utils.common import md5
@@ -23,15 +27,17 @@ class Retriever:
     def search(
         self,
         original_query: str,
-        tranlated_query: str,
+        translator: TranslatorInterface,
         k: int = 10,
         question_id: str | None = None,
     ) -> MinimalSearchResults:
+        translated_query = translator.translate_to_english(original_query)
+
         pool_size = max(k * 30, 200)
         search_results: list[tuple[list[str], float]] = []
 
         for store in self._index_store_registry.active_stores:
-            res = store.search(tranlated_query, k=pool_size)
+            res = store.search(translated_query, k=pool_size)
             if res:
                 search_results.append((res, store.weight))
 
@@ -63,6 +69,21 @@ class Retriever:
             question=original_query,
             retrieved_sources=sources,
         )
+
+    def search_dataset_stream(
+        self,
+        dataset: RagDataset,
+        translator: TranslatorInterface,
+        k: int = 10,
+    ) -> Generator[MinimalSearchResults, None, None]:
+        for question in dataset.rag_questions:
+            minimal_search_results = self.search(
+                original_query=question.question,
+                translator=translator,
+                k=k,
+                question_id=question.question_id,
+            )
+            yield minimal_search_results
 
     def __compute_rrf(
         self,

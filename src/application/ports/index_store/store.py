@@ -4,6 +4,7 @@ from typing import Generator
 
 from src.domain.models.document import Document
 from src.domain.models.manifest import ManifestFileCache
+from src.utils.file import ensure_valid_dir_path
 
 
 class IndexStoreInterface(ABC):
@@ -29,6 +30,8 @@ class IndexStoreQueryInterface(IndexStoreInterface, ABC):
         enable: bool = True,
         weight: float = 1.0,
     ) -> None:
+        ensure_valid_dir_path(dir_path)
+
         super().__init__(dir_path, enable)
         self.weight: float = weight
 
@@ -44,13 +47,19 @@ class IndexStoreSyncInterface(IndexStoreInterface, ABC):
     def _perform_commit(self, require_reset: bool) -> None: ...
 
     def __init__(
-        self, dir_path: Path, enable: bool = True, addition_enable: bool = True
+        self,
+        dir_path: Path,
+        enable: bool = True,
+        addition_enable: bool = True,
     ) -> None:
         super().__init__(dir_path, enable)
         self._addition_enable: bool = addition_enable
         self._delete_chunk_ids: set[str] = set()
         self._add_documents: list[Document] = []
         self._document_ids: set[str] = set()
+
+        if enable:
+            self._dir_path.mkdir(parents=True, exist_ok=True)
 
     def commit(self, require_reset: bool) -> None:
         if not self.enable:

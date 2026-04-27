@@ -35,7 +35,6 @@ class ChromaIndexStoreSync(IndexStoreSyncInterface):
             f"{len(self._delete_chunk_ids)} deletions."
         )
 
-        self._dir_path.mkdir(parents=True, exist_ok=True)
         client = chromadb.PersistentClient(
             path=str(self._dir_path),
             settings=Settings(anonymized_telemetry=False),
