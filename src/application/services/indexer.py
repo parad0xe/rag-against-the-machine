@@ -36,6 +36,7 @@ class Indexer:
         self._file_loader: FileLoaderInterface = file_loader
         self._document_loader: DocumentLoaderInterface = document_loader
         self._viewed_file_paths: set[Path] = set()
+        self.founded_documents: int = 0
 
         for store in index_store_registry.stores:
             store.delete(manifest_manager.expired_chunk_ids)
@@ -85,6 +86,7 @@ class Indexer:
                     cached_file=cached_file,
                 )
 
+                self.founded_documents += 1
                 stats["documents"] += 1
                 stats["chunks"] += len(document.chunk_ids)
 
@@ -104,9 +106,10 @@ class Indexer:
             logger.debug(
                 f"[{store.__class__.__name__}] "
                 "documents"
-                f"(add: {num_documents_to_add}) "
+                f"(to add: {num_documents_to_add}) "
                 "chunks"
-                f"(add: {num_chunks_to_add} / delete: {num_chunks_to_delete})"
+                f"(to add: {num_chunks_to_add} "
+                f"/ to delete: {num_chunks_to_delete})"
             )
 
     def commit(self) -> None:

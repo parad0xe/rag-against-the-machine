@@ -3,6 +3,7 @@ import logging
 import bm25s
 
 from src.application.ports.index_store.store import IndexStoreSyncInterface
+from src.domain.exceptions.base import RagError
 from src.domain.models.document import Document
 from src.domain.models.manifest import ManifestFileCache
 
@@ -31,6 +32,9 @@ class BM25IndexStoreSync(IndexStoreSyncInterface):
         return True
 
     def _perform_commit(self, require_reset: bool) -> None:
+        if not self._add_documents:
+            raise RagError("No document to index for BM25")
+
         total_docs = len(self._add_documents)
         logger.info(
             f"[{self.__class__.__name__}] Building index for "
