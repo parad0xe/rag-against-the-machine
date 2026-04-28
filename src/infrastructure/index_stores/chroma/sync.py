@@ -4,7 +4,7 @@ from pathlib import Path
 import chromadb
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
-from tqdm import tqdm
+from tqdm.rich import tqdm
 
 from src.application.ports.index_store.store import IndexStoreSyncInterface
 

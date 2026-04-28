@@ -16,9 +16,7 @@ class ChunksLoader(ChunksLoaderInterface):
             return {}
 
         if self._cache is None:
-            content = file_load_content(
-                self._file_path, ignore_unicode_error=True
-            )
+            content = file_load_content(self._file_path, ignore_errors=True)
             if not content:
                 return {}
             try:

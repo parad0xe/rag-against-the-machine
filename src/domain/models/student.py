@@ -11,7 +11,7 @@ class StudentSearchResults(BaseModel):
     search_results: list[MinimalSearchResults] = Field(default_factory=list)
 
 
-class StudentSearchResultsAndAnswer:
+class StudentSearchResultsAndAnswer(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     k: int

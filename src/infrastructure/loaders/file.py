@@ -14,7 +14,6 @@ class LocalFileLoader(FileLoaderInterface):
     ) -> File | None:
         content = file_load_content(
             file_path,
-            ignore_unicode_error=True,
             ignore_errors=ignore_errors,
         )
         if content is None:

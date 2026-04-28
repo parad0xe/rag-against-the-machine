@@ -55,23 +55,21 @@ class ManifestJSONLoader(ManifestLoaderInterface):
         manifest = self.load(file_path, ignore_errors=True)
         fingerprint = compute_fingerprint(fingerprint_seed)
 
-        # TD: Refactoriser, l'ajout d'une variable est sujet a oublie entre if et else
+        properties = {
+            "embedding_model_name": embedding_model_name,
+            "repositories": repositories.copy(),
+            "chunk_size": chunk_size,
+            "fingerprint": fingerprint,
+            "with_semantic": with_semantic,
+        }
+
         if manifest:
             fingerprint_mismatch = manifest.fingerprint != fingerprint
 
-            manifest.chunk_size = chunk_size
-            manifest.repositories = repositories.copy()
-            manifest.embedding_model_name = embedding_model_name
-            manifest.fingerprint = fingerprint
-            manifest.with_semantic = with_semantic
+            for key, value in properties.items():
+                setattr(manifest, key, value)
 
             return manifest, fingerprint_mismatch
-        else:
-            new_manifest = Manifest(
-                embedding_model_name=embedding_model_name,
-                repositories=repositories,
-                chunk_size=chunk_size,
-                fingerprint=fingerprint,
-                with_semantic=with_semantic,
-            )
-            return new_manifest, False
+
+        new_manifest = Manifest.model_validate(properties)
+        return new_manifest, False

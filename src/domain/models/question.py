@@ -17,3 +17,6 @@ class AnsweredQuestion(UnansweredQuestion):
 
     sources: list[MinimalSource]
     answer: str
+
+    difficulty: str
+    is_valid: bool

@@ -20,12 +20,20 @@ class LoggingSystem:
                 ),
                 "datefmt": "%H:%M:%S",
             },
+            "rich": {
+                "format": "%(message)s",
+                "datefmt": "[%X]",
+            },
         },
         "handlers": {
             "console": {
                 "level": logging.DEBUG,
-                "class": "logging.StreamHandler",
-                "formatter": "standard",
+                "class": "rich.logging.RichHandler",
+                "formatter": "rich",
+                "rich_tracebacks": True,
+                "show_time": True,
+                "show_path": True,
+                "markup": True,
             },
         },
         "root": {

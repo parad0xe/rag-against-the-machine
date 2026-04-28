@@ -3,7 +3,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
-from tqdm import tqdm
+from tqdm.rich import tqdm
 
 from src.application.ports.index_store.registry import (
     IndexStoreRegistryInterface,
@@ -61,11 +61,8 @@ class Indexer:
         )
 
         with tqdm(
-            iterator,
+            list(iterator),
             desc="Indexing documents",
-            bar_format=(
-                "{desc} | scan {n} documents | {elapsed} | {rate_fmt}{postfix}"
-            ),
             unit="files",
         ) as pbar:
             for file_path in pbar:

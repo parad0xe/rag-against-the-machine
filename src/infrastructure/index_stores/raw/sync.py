@@ -25,9 +25,7 @@ class RawIndexStoreSync(IndexStoreSyncInterface):
     def _perform_commit(self, require_reset_before: bool) -> None:
         data: dict = {}
         if self._file_path.exists() and not require_reset_before:
-            content = file_load_content(
-                self._file_path, ignore_unicode_error=True
-            )
+            content = file_load_content(self._file_path)
             if content:
                 try:
                     data = json.loads(content)

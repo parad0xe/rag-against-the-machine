@@ -7,16 +7,9 @@ from pydantic import (
 from rich.console import Console
 from rich.table import Table
 
-from src.application.services.retriever import Retriever
-from src.domain.exceptions.storage import StorageFileNotFoundError
-from src.infrastructure.index_stores.bm25.query import BM25IndexStoreQuery
-from src.infrastructure.index_stores.chroma.query import (
-    ChromaIndexStoreQuery,
+from src.infrastructure.factories.retriever import (
+    RetrieverFactory,
 )
-from src.infrastructure.index_stores.registry import IndexStoreQueryRegistry
-from src.infrastructure.loaders.chunks import ChunksLoader
-from src.infrastructure.loaders.manifest import ManifestJSONLoader
-from src.infrastructure.translators.hugging_face import HuggingFaceTranslator
 
 logger = logging.getLogger(__file__)
 
@@ -34,7 +27,7 @@ def entrypoint_search(
     console = Console()
 
     console.print()
-    console.rule("[bold blue]Knowledge Base Search[/]", style="blue")
+    console.rule("[bold blue]Search[/]", style="blue")
     console.print(f"\n[bold]Query:[/] [cyan]{original_query}[/]\n")
 
     console.print("[bold cyan][1/2][/] Initializing environment...")
@@ -43,23 +36,12 @@ def entrypoint_search(
         spinner="dots",
         spinner_style="bold magenta",
     ):
-        manifest = ManifestJSONLoader().load(manifest_file_path)
-        if not manifest:
-            raise StorageFileNotFoundError(manifest_file_path)
-
-        translator = HuggingFaceTranslator()
-
-        retriever = Retriever(
-            index_store_registry=IndexStoreQueryRegistry(
-                BM25IndexStoreQuery(bm25_dir_path, weight=0.65),
-                ChromaIndexStoreQuery(
-                    chroma_dir_path,
-                    embedding_model_name,
-                    enable=manifest.with_semantic,
-                    weight=0.35,
-                ),
-            ),
-            chunks_loader=ChunksLoader(chunks_file_path),
+        retriever, translator = RetrieverFactory.build(
+            bm25_dir_path,
+            chroma_dir_path,
+            chunks_file_path,
+            manifest_file_path,
+            embedding_model_name,
         )
     console.print("[bold green][ OK ][/] Models and data loaded.\n")
 
@@ -69,7 +51,7 @@ def entrypoint_search(
         spinner="dots",
         spinner_style="bold magenta",
     ):
-        result = retriever.search(
+        result, _ = retriever.search(
             original_query=original_query,
             translator=translator,
             k=k,

@@ -24,13 +24,12 @@ class Retriever:
         self._index_store_registry = index_store_registry
         self._chunks_loader = chunks_loader
 
-    def search(
+    def retrieve_chunks(
         self,
         original_query: str,
         translator: TranslatorInterface,
         k: int = 10,
-        question_id: str | None = None,
-    ) -> MinimalSearchResults:
+    ) -> list[Chunk]:
         translated_query = translator.translate_to_english(original_query)
 
         pool_size = max(k * 30, 200)
@@ -46,17 +45,34 @@ class Retriever:
 
         chunks_data = self._chunks_loader.load(top_ids)
 
-        sources: list[MinimalSource] = []
-        for cid, _ in top_results:
-            data: Chunk | None = chunks_data.get(cid, None)
+        chunks: list[Chunk] = []
+        for chunk_id, _ in top_results:
+            data: Chunk | None = chunks_data.get(chunk_id, None)
 
             if data is None:
                 continue
 
+            chunks.append(data)
+
+        return chunks
+
+    def search(
+        self,
+        original_query: str,
+        translator: TranslatorInterface,
+        k: int = 10,
+        question_id: str | None = None,
+    ) -> tuple[MinimalSearchResults, list[Chunk]]:
+        chunks = self.retrieve_chunks(
+            original_query=original_query, translator=translator, k=k
+        )
+
+        sources: list[MinimalSource] = []
+        for chunk in chunks:
             source = MinimalSource(
-                file_path=data.get("file_path", "Unknown"),
-                first_character_index=data.get("first_character_index", -1),
-                last_character_index=data.get("last_character_index", -1),
+                file_path=chunk.get("file_path", "Unknown"),
+                first_character_index=chunk.get("first_character_index", -1),
+                last_character_index=chunk.get("last_character_index", -1),
             )
             sources.append(source)
 
@@ -68,22 +84,22 @@ class Retriever:
             question_id=question_id,
             question=original_query,
             retrieved_sources=sources,
-        )
+        ), chunks
 
     def search_dataset_stream(
         self,
         dataset: RagDataset,
         translator: TranslatorInterface,
         k: int = 10,
-    ) -> Generator[MinimalSearchResults, None, None]:
+    ) -> Generator[tuple[MinimalSearchResults, list[Chunk]], None, None]:
         for question in dataset.rag_questions:
-            minimal_search_results = self.search(
+            minimal_search_results, chunks = self.search(
                 original_query=question.question,
                 translator=translator,
                 k=k,
                 question_id=question.question_id,
             )
-            yield minimal_search_results
+            yield minimal_search_results, chunks
 
     def __compute_rrf(
         self,

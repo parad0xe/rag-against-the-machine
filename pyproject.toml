@@ -4,11 +4,13 @@ version = "0.0.1"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "accelerate>=1.13.0",
     "bm25s>=0.3.3",
     "chromadb>=1.5.8",
     "fire>=0.7.1",
     "langchain>=1.2.15",
     "langchain-text-splitters>=1.1.1",
+    "langdetect>=1.0.9",
     "pydantic>=2.13.2",
     "rich>=15.0.0",
     "sacremoses>=0.1.1",
@@ -33,4 +35,8 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "fire.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "langdetect.*"
 ignore_missing_imports = true

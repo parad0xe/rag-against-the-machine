@@ -68,12 +68,12 @@ def get_extension(file_path: str) -> str:
 def file_load_content(
     file_path: Path,
     ignore_errors: bool = False,
-    ignore_unicode_error: bool = False,
 ) -> str | None:
     try:
-        with open(file_path, encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8", errors="strict") as f:
             return f.read()
     except (OSError, UnicodeDecodeError) as e:
+        logger.warning(f"failed to load file {file_path}: {e}")
         if ignore_errors:
             return None
 
@@ -84,8 +84,6 @@ def file_load_content(
             raise StorageFilePermissionError(file_path) from e
 
         if isinstance(e, UnicodeDecodeError):
-            if ignore_unicode_error:
-                return None
             raise StorageError(
                 "Invalid UTF-8 character encoding", file_path
             ) from e
