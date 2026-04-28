@@ -1,11 +1,14 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from src.domain.models.chunk import Chunk
-from src.domain.models.document import Document
-from src.domain.models.file import File
-from src.domain.models.manifest import Manifest, ManifestFileCache
-from src.domain.models.rag import RagDataset
+from src.domain.models.base import (
+    Chunk,
+    Document,
+    File,
+    Manifest,
+    ManifestFileCache,
+)
+from src.domain.models.dataset import RagDataset
 
 
 class FileLoaderInterface(ABC):

@@ -44,7 +44,7 @@ class ChromaIndexStoreSync(IndexStoreSyncInterface):
             logger.info(f"[{self.__class__.__name__}] Resetting collection.")
             try:
                 client.delete_collection(name="chunks")
-            except ValueError:
+            except Exception:
                 pass
 
         collection = client.get_or_create_collection(name="chunks")

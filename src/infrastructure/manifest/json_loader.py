@@ -8,7 +8,7 @@ from src.domain.exceptions.schema import (
     SchemaInvalidJSONFormatError,
     SchemaInvalidJSONRootError,
 )
-from src.domain.models.manifest import Manifest
+from src.domain.models.base import Manifest
 from src.utils.common import compute_fingerprint
 from src.utils.file import file_load_content
 

@@ -2,11 +2,11 @@ import json
 from pathlib import Path
 
 from src.application.ports.loader import ChunksLoaderInterface
-from src.domain.models.chunk import Chunk
+from src.domain.models.base import Chunk
 from src.utils.file import file_load_content
 
 
-class ChunksLoader(ChunksLoaderInterface):
+class ChunksJSONLoader(ChunksLoaderInterface):
     def __init__(self, file_path: Path) -> None:
         self._file_path = file_path
         self._cache: dict[str, Chunk] | None = None

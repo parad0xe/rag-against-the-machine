@@ -6,7 +6,7 @@ from src.domain.exceptions.schema import (
     SchemaInvalidJSONFormatError,
     SchemaInvalidJSONRootError,
 )
-from src.domain.models.rag import RagDataset
+from src.domain.models.dataset import RagDataset
 from src.utils.file import file_load_content
 
 

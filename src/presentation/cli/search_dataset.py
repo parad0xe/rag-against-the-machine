@@ -18,9 +18,9 @@ from rich.progress import (
 )
 
 from src.domain.exceptions.storage import StorageFileNotFoundError
-from src.domain.models.student import StudentSearchResults
-from src.infrastructure.factories.retriever import RetrieverFactory
-from src.infrastructure.loaders.rag_dataset import RagDatasetJSONLoader
+from src.domain.models.inference import StudentSearchResults
+from src.factories.retriever import RetrieverFactory
+from src.infrastructure.dataset.json_loader import RagDatasetJSONLoader
 from src.utils.file import file_write_json
 
 logger = logging.getLogger(__file__)
@@ -35,7 +35,7 @@ def entrypoint_search_dataset(
     chroma_dir_path: Path,
     chunks_file_path: Path,
     manifest_file_path: Path,
-    embedding_model_name: str = "all-MiniLM-L6-v2",
+    embedding_model_name: str,
 ) -> None:
     console = get_console()
 

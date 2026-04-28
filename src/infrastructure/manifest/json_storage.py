@@ -1,8 +1,8 @@
 from pathlib import Path
 
 from src.application.ports.storage import ManifestStorageInterface
-from src.domain.models.manifest import Manifest
-from src.infrastructure.loaders.manifest import ManifestJSONLoader
+from src.domain.models.base import Manifest
+from src.infrastructure.manifest.json_loader import ManifestJSONLoader
 from src.utils.file import file_write_json
 
 

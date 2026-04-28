@@ -1,7 +1,20 @@
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.domain.models.answer import MinimalAnswer
-from src.domain.models.search import MinimalSearchResults
+from src.domain.models.dataset import MinimalSource
+
+
+class MinimalSearchResults(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question_id: str
+    question: str
+    retrieved_sources: list[MinimalSource]
+
+
+class MinimalAnswer(MinimalSearchResults):
+    model_config = ConfigDict(extra="forbid")
+
+    answer: str
 
 
 class StudentSearchResults(BaseModel):

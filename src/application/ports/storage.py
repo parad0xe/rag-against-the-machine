@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from src.domain.models.manifest import Manifest
+from src.domain.models.base import Manifest
 
 
 class ManifestStorageInterface(ABC):

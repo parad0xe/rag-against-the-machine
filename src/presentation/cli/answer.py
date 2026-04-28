@@ -10,12 +10,12 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.spinner import Spinner
 
-from src.infrastructure.factories.retriever import RetrieverFactory
-from src.infrastructure.llm.qwen import QwenLlm
+from src.config import settings
+from src.factories.retriever import RetrieverFactory
+from src.infrastructure.llm.assistants.qwen import QwenAssistantLLM
+from src.utils.format import parse_llm_thought
 
 logger = logging.getLogger(__file__)
-
-DEFAULT_MODEL_NAME: str = "Qwen/Qwen3-0.6B"
 
 
 @validate_call()
@@ -25,9 +25,9 @@ def entrypoint_answer(
     chroma_dir_path: Path,
     chunks_file_path: Path,
     manifest_file_path: Path,
-    embedding_model_name: str = "all-MiniLM-L6-v2",
-    k: int = 10,
-    with_details: bool = False,
+    embedding_model_name: str,
+    k: int,
+    with_details: bool,
 ) -> None:
     console = get_console()
 
@@ -49,7 +49,7 @@ def entrypoint_answer(
             embedding_model_name,
         )
 
-        llm = QwenLlm(model_name=DEFAULT_MODEL_NAME)
+        llm = QwenAssistantLLM(model_name=settings.llm_model)
     console.print("[bold green][ OK ][/] Models and data loaded.\n")
 
     console.print("[bold cyan][2/3][/] Executing search query...")
@@ -99,20 +99,7 @@ def entrypoint_answer(
             elapsed_time = time.perf_counter() - start_time
             time_str = f"[dim]Time elapsed: {elapsed_time:.1f}s[/dim]"
 
-            thinking_text = ""
-            final_text = ""
-
-            if "<think>" in full_text:
-                parts = full_text.split("<think>", 1)
-                after_think = parts[1]
-                if "</think>" in after_think:
-                    think_parts = after_think.split("</think>", 1)
-                    thinking_text = think_parts[0].strip("\n")
-                    final_text = think_parts[1].strip("\n")
-                else:
-                    thinking_text = after_think.strip("\n")
-            else:
-                final_text = full_text.strip("\n")
+            thinking_text, final_text = parse_llm_thought(full_text)
 
             panels = []
 

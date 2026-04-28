@@ -4,26 +4,25 @@ import logging
 import time
 from pathlib import Path
 
-from pydantic import PositiveInt, validate_call
+from pydantic import Field, PositiveInt, validate_call
 from rich import get_console
 
 from src.application.services.indexer import Indexer
+from src.config import settings
 from src.domain.exceptions.document import NoDocumentError
+from src.infrastructure.document.loader import DocumentLoader
+from src.infrastructure.file.local_loader import LocalFileLoader
 from src.infrastructure.index_stores.bm25.sync import BM25IndexStoreSync
 from src.infrastructure.index_stores.chroma.sync import ChromaIndexStoreSync
 from src.infrastructure.index_stores.raw.sync import RawIndexStoreSync
 from src.infrastructure.index_stores.registry import IndexStoreSyncRegistry
-from src.infrastructure.loaders.document.document import DocumentLoader
-from src.infrastructure.loaders.file import LocalFileLoader
-from src.infrastructure.storage.manifest.json_storage import (
+from src.infrastructure.manifest.json_storage import (
     ManifestJSONStorage,
 )
-from src.infrastructure.storage.manifest.manager import ManifestManager
+from src.infrastructure.manifest.manager import ManifestManager
 from src.utils.common import parse_extensions
 
 logger = logging.getLogger(__file__)
-
-BATCH_SIZE = 32
 
 
 @validate_call()
@@ -33,10 +32,10 @@ def entrypoint_index(
     bm25_dir_path: Path,
     chroma_dir_path: Path,
     chunks_file_path: Path,
-    extensions: str = "*",
-    chunk_size: PositiveInt = 2000,
-    embedding_model_name: str = "all-MiniLM-L6-v2",
-    with_semantic: bool = False,
+    extensions: str,
+    embedding_model_name: str,
+    with_semantic: bool,
+    chunk_size: PositiveInt = Field(2000, le=2000),
 ) -> None:
     console = get_console()
 
@@ -72,7 +71,7 @@ def entrypoint_index(
                 ChromaIndexStoreSync(
                     chroma_dir_path,
                     embedding_model_name,
-                    batch_size=BATCH_SIZE,
+                    batch_size=settings.index_batch_size,
                     addition_enable=with_semantic,
                 ),
                 RawIndexStoreSync(chunks_file_path),

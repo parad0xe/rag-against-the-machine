@@ -17,29 +17,31 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
+from src.config import settings
 from src.domain.exceptions.storage import StorageFileNotFoundError
-from src.domain.models.answer import MinimalAnswer
-from src.domain.models.student import StudentSearchResultsAndAnswer
-from src.infrastructure.factories.retriever import RetrieverFactory
-from src.infrastructure.llm.qwen import QwenLlm
-from src.infrastructure.loaders.rag_dataset import RagDatasetJSONLoader
+from src.domain.models.inference import (
+    MinimalAnswer,
+    StudentSearchResultsAndAnswer,
+)
+from src.factories.retriever import RetrieverFactory
+from src.infrastructure.dataset.json_loader import RagDatasetJSONLoader
+from src.infrastructure.llm.assistants.qwen import QwenAssistantLLM
 from src.utils.file import file_write_json
+from src.utils.format import build_context_from_chunks, parse_llm_thought
 
 logger = logging.getLogger(__file__)
-
-DEFAULT_MODEL_NAME: str = "Qwen/Qwen3-0.6B"
 
 
 @validate_call()
 def entrypoint_answer_dataset(
     dataset_file_path: Path,
     save_dir_path: Path,
-    k: int,
     bm25_dir_path: Path,
     chroma_dir_path: Path,
     chunks_file_path: Path,
     manifest_file_path: Path,
-    embedding_model_name: str = "all-MiniLM-L6-v2",
+    k: int,
+    embedding_model_name: str,
 ) -> None:
     console = get_console()
 
@@ -63,7 +65,7 @@ def entrypoint_answer_dataset(
         if not dataset:
             raise StorageFileNotFoundError(dataset_file_path)
 
-        llm = QwenLlm(model_name=DEFAULT_MODEL_NAME)
+        llm = QwenAssistantLLM(model_name=settings.llm_model)
 
     console.print("[bold green][ OK ][/] Models and data loaded.\n")
 
@@ -104,43 +106,21 @@ def entrypoint_answer_dataset(
                 ),
             )
 
-            context: list[str] = []
-            for index, chunk in enumerate(chunks):
-                file_path = chunk.get("file_path")
-                start_index = chunk.get("first_character_index")
-                end_index = chunk.get("last_character_index")
-                text_content = chunk.get("text")
-
-                context_source = (
-                    f"---  SOURCE #{index + 1} ---\n"
-                    f"File: {file_path} (Chars: {start_index}-{end_index})\n"
-                    f"Content: {text_content}"
-                )
-                context.append(context_source)
+            context_str = build_context_from_chunks(chunks)
 
             answer_stream = llm.generate_answer(
                 query=result.question,
-                context="\n".join(context),
+                context=context_str,
             )
 
             full_text = "".join(answer_stream)
-
-            if "<think>" in full_text:
-                parts = full_text.split("<think>", 1)
-                after_think = parts[1]
-                if "</think>" in after_think:
-                    think_parts = after_think.split("</think>", 1)
-                    full_text = think_parts[1].strip("\n")
-            else:
-                full_text = full_text.strip("\n")
-
-            full_text = full_text.strip("\n")
+            _, final_text = parse_llm_thought(full_text)
 
             minimal_answer = MinimalAnswer(
                 question_id=result.question_id,
                 question=result.question,
                 retrieved_sources=result.retrieved_sources,
-                answer=full_text,
+                answer=final_text,
             )
 
             student.search_results.append(minimal_answer)

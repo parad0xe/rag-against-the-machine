@@ -4,10 +4,10 @@ from pathlib import Path
 from pydantic import (
     validate_call,
 )
-from rich.console import Console
+from rich import get_console
 from rich.table import Table
 
-from src.infrastructure.factories.retriever import (
+from src.factories.retriever import (
     RetrieverFactory,
 )
 
@@ -24,7 +24,7 @@ def entrypoint_search(
     embedding_model_name: str = "all-MiniLM-L6-v2",
     k: int = 10,
 ) -> None:
-    console = Console()
+    console = get_console()
 
     console.print()
     console.rule("[bold blue]Search[/]", style="blue")

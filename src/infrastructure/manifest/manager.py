@@ -3,15 +3,14 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from src.application.ports.manifest import ManifestManagerInterface
 from src.application.ports.storage import ManifestStorageInterface
-from src.domain.models.document import Document
-from src.domain.models.file import File
-from src.domain.models.manifest import Manifest, ManifestFileCache
+from src.domain.models.base import Document, File, Manifest, ManifestFileCache
 
 logger = logging.getLogger(__file__)
 
 
-class ManifestManager:
+class ManifestManager(ManifestManagerInterface):
     def __init__(
         self,
         file_path: Path,

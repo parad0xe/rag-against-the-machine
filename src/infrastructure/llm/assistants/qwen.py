@@ -9,22 +9,26 @@ from transformers import (
     TextIteratorStreamer,
 )
 
-from src.application.ports.llm import LlmInterface
+from src.application.ports.llm import LLMAssistantInterface
+from src.domain.exceptions.base import RagError
 
 logger = logging.getLogger(__file__)
 
 
-class QwenLlm(LlmInterface):
+class QwenAssistantLLM(LLMAssistantInterface):
     def __init__(self, model_name: str = "Qwen/Qwen3-0.6B") -> None:
         logger.info(f"Loading LLM {model_name}...")
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            torch_dtype="auto",
-            device_map="auto",
-        )
+        try:
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                torch_dtype="auto",
+                device_map="auto",
+            )
+        except MemoryError as e:
+            raise RagError("Failed to load LLM into memory") from e
 
     def generate_answer(
         self, query: str, context: str

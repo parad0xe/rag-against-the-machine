@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from src.application.ports.loader import FileLoaderInterface
-from src.domain.models.file import File
+from src.domain.models.base import File
 from src.utils.common import md5
 from src.utils.file import file_load_content, get_extension
 

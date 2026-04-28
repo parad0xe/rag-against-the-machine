@@ -14,6 +14,7 @@ from pydantic import (
 )
 from tqdm import TqdmExperimentalWarning
 
+from src.config import settings
 from src.domain.exceptions.base import RagError
 from src.domain.exceptions.schema import SchemaValidationError
 from src.logging import LoggingSystem
@@ -28,55 +29,33 @@ warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
 logger = logging.getLogger(__file__)
 
-DEFAULT_REPOSITORY_DIRPATH: str = "data/raw/vllm-0.10.1"
-
-PROCESSED_DIR_PATH: Path = Path("data/processed")
-BM25_DIRPATH: Path = PROCESSED_DIR_PATH / "bm25_index"
-CHROMA_DIRPATH: Path = PROCESSED_DIR_PATH / "chroma_index"
-MANIFEST_FILEPATH: Path = PROCESSED_DIR_PATH / "manifest.json"
-CHUNK_FILEPATH: Path = PROCESSED_DIR_PATH / "chunks.json"
-EMBEDDING_LLM_MODEL: str = "all-MiniLM-L6-v2"
-
-DATASET_DIR_PATH: Path = Path("data/datasets")
-UNANSWERED_FILEPATH: Path = (
-    DATASET_DIR_PATH / "UnansweredQuestions/dataset_docs_public.json"
-)
-ANSWERED_FILEPATH: Path = (
-    DATASET_DIR_PATH / "AnsweredQuestions/dataset_docs_public.json"
-)
-
-DATASET_OUTPUT: Path = Path("data/output")
-DATASET_SEARCH_OUTPUT: Path = DATASET_OUTPUT / "search_results.json"
-DATASET_ANSWER_OUTPUT: Path = DATASET_OUTPUT / "answer_results.json"
-
 
 class App:
     def __init__(self) -> None:
-        os.makedirs(PROCESSED_DIR_PATH, exist_ok=True)
+        settings.processed_dir.mkdir(parents=True, exist_ok=True)
+        settings.output_dir.mkdir(parents=True, exist_ok=True)
 
     def index(
         self,
-        path: str = DEFAULT_REPOSITORY_DIRPATH,
+        path: str = str(settings.repo_path),
         extensions: str | tuple[str] = "*",
-        max_chunk_size: int = 2000,
+        max_chunk_size: int = settings.max_chunk_size,
         semantic: bool = False,
         verbose: int = 0,
     ) -> None:
-        verbose = TypeAdapter(NonNegativeInt).validate_python(verbose)
+        self._prepare(verbose)
 
         if not isinstance(extensions, str):
             if isinstance(extensions, Iterable):
                 extensions = ",".join(extensions)
 
-        self._init_logging(verbose)
-
         entrypoint_index(
             repositories=[Path(path)],
-            bm25_dir_path=BM25_DIRPATH,
-            manifest_file_path=MANIFEST_FILEPATH,
-            chroma_dir_path=CHROMA_DIRPATH,
-            embedding_model_name=EMBEDDING_LLM_MODEL,
-            chunks_file_path=CHUNK_FILEPATH,
+            bm25_dir_path=settings.bm25_dir,
+            manifest_file_path=settings.manifest_path,
+            chroma_dir_path=settings.chroma_dir,
+            embedding_model_name=settings.embedding_model,
+            chunks_file_path=settings.chunks_path,
             extensions=extensions,
             chunk_size=max_chunk_size,
             with_semantic=semantic,
@@ -85,99 +64,89 @@ class App:
     def search(
         self,
         query: str,
-        k: int = 10,
+        k: int = settings.default_k,
         verbose: int = 0,
     ) -> None:
-        verbose = TypeAdapter(NonNegativeInt).validate_python(verbose)
-
-        self._init_logging(verbose)
+        self._prepare(verbose)
 
         entrypoint_search(
             original_query=query,
             k=k,
-            bm25_dir_path=BM25_DIRPATH,
-            chunks_file_path=CHUNK_FILEPATH,
-            chroma_dir_path=CHROMA_DIRPATH,
-            manifest_file_path=MANIFEST_FILEPATH,
-            embedding_model_name=EMBEDDING_LLM_MODEL,
+            bm25_dir_path=settings.bm25_dir,
+            chunks_file_path=settings.chunks_path,
+            chroma_dir_path=settings.chroma_dir,
+            manifest_file_path=settings.manifest_path,
+            embedding_model_name=settings.embedding_model,
         )
 
     def search_dataset(
         self,
-        save_dir_path: str = str(DATASET_SEARCH_OUTPUT),
-        dataset_file_path: str = str(UNANSWERED_FILEPATH),
-        k: int = 10,
+        save_dir_path: str = str(settings.search_output),
+        dataset_file_path: str = str(settings.unanswered_path),
+        k: int = settings.default_k,
         verbose: int = 0,
     ) -> None:
-        verbose = TypeAdapter(NonNegativeInt).validate_python(verbose)
-
-        self._init_logging(verbose)
+        self._prepare(verbose)
 
         entrypoint_search_dataset(
             dataset_file_path=Path(dataset_file_path),
             save_dir_path=Path(save_dir_path),
             k=k,
-            bm25_dir_path=BM25_DIRPATH,
-            chunks_file_path=CHUNK_FILEPATH,
-            chroma_dir_path=CHROMA_DIRPATH,
-            manifest_file_path=MANIFEST_FILEPATH,
-            embedding_model_name=EMBEDDING_LLM_MODEL,
+            bm25_dir_path=settings.bm25_dir,
+            chunks_file_path=settings.chunks_path,
+            chroma_dir_path=settings.chroma_dir,
+            manifest_file_path=settings.manifest_path,
+            embedding_model_name=settings.embedding_model,
         )
 
     def answer(
         self,
         query: str,
-        k: int = 10,
+        k: int = settings.default_k,
         details: bool = False,
         verbose: int = 0,
     ) -> None:
-        verbose = TypeAdapter(NonNegativeInt).validate_python(verbose)
-
-        self._init_logging(verbose)
+        self._prepare(verbose)
 
         entrypoint_answer(
             original_query=query,
             k=k,
-            bm25_dir_path=BM25_DIRPATH,
-            chunks_file_path=CHUNK_FILEPATH,
-            chroma_dir_path=CHROMA_DIRPATH,
-            manifest_file_path=MANIFEST_FILEPATH,
-            embedding_model_name=EMBEDDING_LLM_MODEL,
+            bm25_dir_path=settings.bm25_dir,
+            chunks_file_path=settings.chunks_path,
+            chroma_dir_path=settings.chroma_dir,
+            manifest_file_path=settings.manifest_path,
+            embedding_model_name=settings.embedding_model,
             with_details=details,
         )
 
     def answer_dataset(
         self,
-        save_dir_path: str = str(DATASET_ANSWER_OUTPUT),
-        dataset_file_path: str = str(ANSWERED_FILEPATH),
-        k: int = 10,
+        save_dir_path: str = str(settings.answer_output),
+        dataset_file_path: str = str(settings.answered_path),
+        k: int = settings.default_k,
         verbose: int = 0,
     ) -> None:
-        verbose = TypeAdapter(NonNegativeInt).validate_python(verbose)
-
-        self._init_logging(verbose)
+        self._prepare(verbose)
 
         entrypoint_answer_dataset(
             dataset_file_path=Path(dataset_file_path),
             save_dir_path=Path(save_dir_path),
             k=k,
-            bm25_dir_path=BM25_DIRPATH,
-            chunks_file_path=CHUNK_FILEPATH,
-            chroma_dir_path=CHROMA_DIRPATH,
-            manifest_file_path=MANIFEST_FILEPATH,
-            embedding_model_name=EMBEDDING_LLM_MODEL,
+            bm25_dir_path=settings.bm25_dir,
+            chunks_file_path=settings.chunks_path,
+            chroma_dir_path=settings.chroma_dir,
+            manifest_file_path=settings.manifest_path,
+            embedding_model_name=settings.embedding_model,
         )
 
     def evaluate(
         self,
-        dataset_file_path: str = str(ANSWERED_FILEPATH),
-        predictions_file_path: str = str(DATASET_SEARCH_OUTPUT),
+        dataset_file_path: str = str(settings.answered_path),
+        predictions_file_path: str = str(settings.search_output),
         ks: str | tuple[int, ...] = (1, 3, 5, 10),
         verbose: int = 0,
     ) -> None:
-        verbose = TypeAdapter(NonNegativeInt).validate_python(verbose)
-
-        self._init_logging(verbose)
+        self._prepare(verbose)
 
         if isinstance(ks, str):
             ks = tuple(int(k.strip()) for k in ks.split(",") if k.strip())
@@ -188,8 +157,9 @@ class App:
             ks=ks,
         )
 
-    def _init_logging(self, verbose: int) -> None:
-        LoggingSystem.global_setup(verbose)
+    def _prepare(self, verbose: int) -> None:
+        v = TypeAdapter(NonNegativeInt).validate_python(verbose)
+        LoggingSystem.global_setup(v)
 
 
 def main() -> None:

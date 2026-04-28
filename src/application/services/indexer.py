@@ -13,7 +13,7 @@ from src.application.ports.loader import (
     DocumentLoaderInterface,
     FileLoaderInterface,
 )
-from src.infrastructure.storage.manifest.manager import ManifestManager
+from src.application.ports.manifest import ManifestManagerInterface
 from src.utils.file import ensure_valid_dir_path, iter_file_paths
 
 logger = logging.getLogger(__file__)
@@ -22,7 +22,7 @@ logger = logging.getLogger(__file__)
 class Indexer:
     def __init__(
         self,
-        manifest_manager: ManifestManager,
+        manifest_manager: ManifestManagerInterface,
         extensions: list[str],
         index_store_registry: IndexStoreRegistryInterface[
             IndexStoreSyncInterface
@@ -30,7 +30,7 @@ class Indexer:
         file_loader: FileLoaderInterface,
         document_loader: DocumentLoaderInterface,
     ) -> None:
-        self._manifest_manager: ManifestManager = manifest_manager
+        self._manifest_manager = manifest_manager
         self._index_store_registry = index_store_registry
         self._extensions: list[str] = extensions
         self._file_loader: FileLoaderInterface = file_loader

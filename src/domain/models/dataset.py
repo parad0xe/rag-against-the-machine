@@ -2,7 +2,13 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.domain.models.source import MinimalSource
+
+class MinimalSource(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    file_path: str
+    first_character_index: int
+    last_character_index: int
 
 
 class UnansweredQuestion(BaseModel):
@@ -17,6 +23,11 @@ class AnsweredQuestion(UnansweredQuestion):
 
     sources: list[MinimalSource]
     answer: str
-
     difficulty: str
     is_valid: bool
+
+
+class RagDataset(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    rag_questions: list[AnsweredQuestion | UnansweredQuestion]

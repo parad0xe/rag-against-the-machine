@@ -2,14 +2,16 @@ from pathlib import Path
 
 from src.application.services.retriever import Retriever
 from src.domain.exceptions.storage import StorageFileNotFoundError
+from src.infrastructure.chunks.json_loader import ChunksJSONLoader
 from src.infrastructure.index_stores.bm25.query import BM25IndexStoreQuery
 from src.infrastructure.index_stores.chroma.query import (
     ChromaIndexStoreQuery,
 )
 from src.infrastructure.index_stores.registry import IndexStoreQueryRegistry
-from src.infrastructure.loaders.chunks import ChunksLoader
-from src.infrastructure.loaders.manifest import ManifestJSONLoader
-from src.infrastructure.translators.hugging_face import HuggingFaceTranslator
+from src.infrastructure.llm.translators.text_generation import (
+    TextGenerationTranslatorLLM,
+)
+from src.infrastructure.manifest.json_loader import ManifestJSONLoader
 
 
 class RetrieverFactory:
@@ -20,13 +22,13 @@ class RetrieverFactory:
         chunks_file_path: Path,
         manifest_file_path: Path,
         embedding_model_name: str,
-    ) -> tuple[Retriever, HuggingFaceTranslator]:
+    ) -> tuple[Retriever, TextGenerationTranslatorLLM]:
 
         manifest = ManifestJSONLoader().load(manifest_file_path)
         if not manifest:
             raise StorageFileNotFoundError(manifest_file_path)
 
-        translator = HuggingFaceTranslator()
+        translator = TextGenerationTranslatorLLM()
 
         retriever = Retriever(
             index_store_registry=IndexStoreQueryRegistry(
@@ -38,7 +40,7 @@ class RetrieverFactory:
                     weight=0.35,
                 ),
             ),
-            chunks_loader=ChunksLoader(chunks_file_path),
+            chunks_loader=ChunksJSONLoader(chunks_file_path),
         )
 
         return retriever, translator

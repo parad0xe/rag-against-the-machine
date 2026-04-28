@@ -1,11 +1,11 @@
 import logging
+import shutil
 
 import bm25s
 
 from src.application.ports.index_store.store import IndexStoreSyncInterface
 from src.domain.exceptions.base import RagError
-from src.domain.models.document import Document
-from src.domain.models.manifest import ManifestFileCache
+from src.domain.models.base import Document, ManifestFileCache
 
 logger = logging.getLogger(__file__)
 
@@ -47,6 +47,10 @@ class BM25IndexStoreSync(IndexStoreSyncInterface):
         for doc in self._add_documents:
             chunks.extend(doc.chunks)
             chunk_ids.extend({"id": cid} for cid in doc.chunk_ids)
+
+        if self._dir_path.exists():
+            shutil.rmtree(self._dir_path)
+            self._dir_path.mkdir(parents=True, exist_ok=True)
 
         chunk_tokens = bm25s.tokenize(chunks)
         retriever = bm25s.BM25(corpus=chunk_ids)

@@ -4,12 +4,11 @@ from src.application.ports.index_store.registry import (
     IndexStoreRegistryInterface,
 )
 from src.application.ports.index_store.store import IndexStoreQueryInterface
+from src.application.ports.llm import LLMTranslatorInterface
 from src.application.ports.loader import ChunksLoaderInterface
-from src.application.ports.translator import TranslatorInterface
-from src.domain.models.chunk import Chunk
-from src.domain.models.rag import RagDataset
-from src.domain.models.search import MinimalSearchResults
-from src.domain.models.source import MinimalSource
+from src.domain.models.base import Chunk
+from src.domain.models.dataset import MinimalSource, RagDataset
+from src.domain.models.inference import MinimalSearchResults
 from src.utils.common import md5
 
 
@@ -27,16 +26,16 @@ class Retriever:
     def retrieve_chunks(
         self,
         original_query: str,
-        translator: TranslatorInterface,
+        translator: LLMTranslatorInterface,
         k: int = 10,
     ) -> list[Chunk]:
         translated_query = translator.translate_to_english(original_query)
 
-        pool_size = max(k * 30, 200)
+        # pool_size = max(k * 30, 200)
         search_results: list[tuple[list[str], float]] = []
 
         for store in self._index_store_registry.active_stores:
-            res = store.search(translated_query, k=pool_size)
+            res = store.search(translated_query, k=k)
             if res:
                 search_results.append((res, store.weight))
 
@@ -59,7 +58,7 @@ class Retriever:
     def search(
         self,
         original_query: str,
-        translator: TranslatorInterface,
+        translator: LLMTranslatorInterface,
         k: int = 10,
         question_id: str | None = None,
     ) -> tuple[MinimalSearchResults, list[Chunk]]:
@@ -89,7 +88,7 @@ class Retriever:
     def search_dataset_stream(
         self,
         dataset: RagDataset,
-        translator: TranslatorInterface,
+        translator: LLMTranslatorInterface,
         k: int = 10,
     ) -> Generator[tuple[MinimalSearchResults, list[Chunk]], None, None]:
         for question in dataset.rag_questions:

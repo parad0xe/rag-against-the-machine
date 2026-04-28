@@ -8,11 +8,11 @@ from rich.table import Table
 
 from src.application.services.evaluator import Evaluator
 from src.domain.exceptions.storage import StorageFileNotFoundError
-from src.domain.models.question import AnsweredQuestion
-from src.domain.models.student import (
+from src.domain.models.dataset import AnsweredQuestion
+from src.domain.models.inference import (
     StudentSearchResults,
 )
-from src.infrastructure.loaders.rag_dataset import RagDatasetJSONLoader
+from src.infrastructure.dataset.json_loader import RagDatasetJSONLoader
 
 
 @validate_call()
@@ -28,6 +28,8 @@ def entrypoint_evaluate(
     if not dataset:
         raise StorageFileNotFoundError(dataset_file_path)
 
+    dataset.rag_questions = dataset.rag_questions
+
     if not predictions_file_path.exists():
         raise StorageFileNotFoundError(predictions_file_path)
 
@@ -41,28 +43,26 @@ def entrypoint_evaluate(
         valid_ks = [student_data.k]
 
     total_recalls = {k: 0.0 for k in valid_ks}
-    evaluated_count = 0
+    evaluated_sources = 0
 
-    expected_map = {
-        q.question_id: cast(AnsweredQuestion, q).sources
-        for q in dataset.rag_questions
-        if hasattr(q, "sources")
-    }
+    results_map = {res.question_id: res for res in student_data.search_results}
 
-    for result in student_data.search_results:
-        expected_sources = expected_map.get(result.question_id)
-        if expected_sources is None:
-            continue
+    for expected in dataset.rag_questions:
+        expected_answer = cast(AnsweredQuestion, expected)
+        result = results_map.get(expected_answer.question_id)
 
         for k in valid_ks:
-            retrieved = result.retrieved_sources[:k]
-            recall = evaluator.calculate_recall(
-                retrieved=retrieved,
-                expected=expected_sources,
-            )
+            if result is None:
+                recall = 0.0
+            else:
+                retrieved = result.retrieved_sources[:k]
+                recall = evaluator.calculate_recall(
+                    retrieved=retrieved,
+                    expected=expected_answer.sources,
+                )
             total_recalls[k] += recall
 
-        evaluated_count += 1
+        evaluated_sources += len(expected_answer.sources)
 
     table = Table(
         title="Evaluation Results",
@@ -74,11 +74,13 @@ def entrypoint_evaluate(
     table.add_column("Score", justify="right", style="bold yellow")
 
     for k in valid_ks:
-        if evaluated_count > 0:
-            final_score = total_recalls[k] / evaluated_count
+        if evaluated_sources > 0:
+            final_score = total_recalls[k] / evaluated_sources
         else:
             final_score = 0.0
         table.add_row(f"Recall@{k}", f"{final_score:.4f}")
 
     console.print(table)
-    console.print(f"\n[dim]Questions evaluated: {evaluated_count}[/dim]\n")
+    console.print(
+        f"\n[dim]Questions evaluated: {len(dataset.rag_questions)}[/dim]\n"
+    )

@@ -85,4 +85,8 @@ class LanguageTextSplitter(RecursiveCharacterTextSplitter):
             )
         except ValueError:
             separators = None
-        super().__init__(separators=separators, **kwargs)
+        super().__init__(
+            separators=separators,
+            chunk_overlap=200,
+            **kwargs,
+        )

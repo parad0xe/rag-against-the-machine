@@ -1,9 +1,8 @@
 from src.application.ports.loader import DocumentLoaderInterface
-from src.domain.models.chunk import Chunk
-from src.domain.models.document import Document
-from src.domain.models.file import File
-from src.domain.models.manifest import ManifestFileCache
-from src.infrastructure.loaders.document.splitter import LanguageTextSplitter
+from src.domain.models.base import Chunk, Document, File, ManifestFileCache
+from src.infrastructure.document.splitter import (
+    LanguageTextSplitter,
+)
 from src.utils.common import md5
 
 
@@ -19,17 +18,19 @@ class DocumentLoader(DocumentLoaderInterface):
         raw_chunks = LanguageTextSplitter.from_filename(
             str_file_path,
             chunk_size=chunk_size,
-            add_start_index=True,
         ).split_text(file.content)
 
         chunk_ids: list[str] = []
         chunk_metadatas: dict[str, Chunk] = {}
 
-        start_index = 0
+        search_index = 0
         for chunk in raw_chunks:
+            chunk_start_index = file.content.find(chunk, search_index)
+            if chunk_start_index == -1:
+                chunk_start_index = search_index
+
             chunk_length = len(chunk)
-            chunk_start_index = start_index
-            chunk_end_index = start_index + chunk_length
+            chunk_end_index = chunk_start_index + chunk_length
             chunk_id = f"chunk_{file.id}_{chunk_start_index}_{chunk_end_index}"
             chunk_hash = md5(chunk)
 
@@ -42,7 +43,7 @@ class DocumentLoader(DocumentLoaderInterface):
                 last_character_index=chunk_end_index,
             )
 
-            start_index += chunk_length
+            search_index = chunk_start_index + 1
 
         return Document(
             file=file,

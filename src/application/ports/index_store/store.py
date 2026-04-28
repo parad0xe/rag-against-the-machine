@@ -2,8 +2,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Generator
 
-from src.domain.models.document import Document
-from src.domain.models.manifest import ManifestFileCache
+from src.domain.models.base import Document, ManifestFileCache
 from src.utils.file import ensure_valid_dir_path
 
 
