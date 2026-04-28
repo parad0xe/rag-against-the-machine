@@ -19,6 +19,7 @@ from src.domain.exceptions.schema import SchemaValidationError
 from src.logging import LoggingSystem
 from src.presentation.cli.answer import entrypoint_answer
 from src.presentation.cli.answer_dataset import entrypoint_answer_dataset
+from src.presentation.cli.evaluate import entrypoint_evaluate
 from src.presentation.cli.index import entrypoint_index
 from src.presentation.cli.search import entrypoint_search
 from src.presentation.cli.search_dataset import entrypoint_search_dataset
@@ -36,12 +37,12 @@ MANIFEST_FILEPATH: Path = PROCESSED_DIR_PATH / "manifest.json"
 CHUNK_FILEPATH: Path = PROCESSED_DIR_PATH / "chunks.json"
 EMBEDDING_LLM_MODEL: str = "all-MiniLM-L6-v2"
 
-DATASET_DIR_PATH: Path = Path("datasets_public/public")
+DATASET_DIR_PATH: Path = Path("data/datasets")
 UNANSWERED_FILEPATH: Path = (
-    DATASET_DIR_PATH / "UnansweredQuestions/dataset_code_public.json"
+    DATASET_DIR_PATH / "UnansweredQuestions/dataset_docs_public.json"
 )
 ANSWERED_FILEPATH: Path = (
-    DATASET_DIR_PATH / "AnsweredQuestions/dataset_code_public.json"
+    DATASET_DIR_PATH / "AnsweredQuestions/dataset_docs_public.json"
 )
 
 DATASET_OUTPUT: Path = Path("data/output")
@@ -167,11 +168,25 @@ class App:
             embedding_model_name=EMBEDDING_LLM_MODEL,
         )
 
-    def evaluate(self, verbose: int = 0) -> None:
+    def evaluate(
+        self,
+        dataset_file_path: str = str(ANSWERED_FILEPATH),
+        predictions_file_path: str = str(DATASET_SEARCH_OUTPUT),
+        ks: str | tuple[int, ...] = (1, 3, 5, 10),
+        verbose: int = 0,
+    ) -> None:
         verbose = TypeAdapter(NonNegativeInt).validate_python(verbose)
 
         self._init_logging(verbose)
-        raise NotImplementedError("App.evaluate")
+
+        if isinstance(ks, str):
+            ks = tuple(int(k.strip()) for k in ks.split(",") if k.strip())
+
+        entrypoint_evaluate(
+            dataset_file_path=Path(dataset_file_path),
+            predictions_file_path=Path(predictions_file_path),
+            ks=ks,
+        )
 
     def _init_logging(self, verbose: int) -> None:
         LoggingSystem.global_setup(verbose)
