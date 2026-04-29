@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import shutil
 from pathlib import Path
 from typing import Any, Generator, Iterable
 
@@ -119,3 +120,20 @@ def file_write_json(
         raise StorageFilePermissionError(file_path) from e
     except OSError as e:
         raise StorageError(None, file_path) from e
+
+
+def safe_rmtree(dir_path: Path) -> None:
+    from src.config import settings
+
+    resolved_path = dir_path.resolve()
+    resolved_base = settings.data_dir.resolve()
+
+    if not resolved_path.is_relative_to(resolved_base):
+        raise StorageError(
+            f"Security violation: Deletion forbidden outside of "
+            f"'{resolved_base}'",
+            dir_path,
+        )
+
+    if dir_path.exists() and dir_path.is_dir():
+        shutil.rmtree(dir_path)

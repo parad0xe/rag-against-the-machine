@@ -23,9 +23,6 @@ class IndexStoreSyncPort(Protocol):
     def name(self) -> str: ...
 
     @property
-    def enable(self) -> bool: ...
-
-    @property
     def addition_enable(self) -> bool: ...
 
     def track(

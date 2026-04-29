@@ -12,7 +12,7 @@ from src.domain.models.dataset import AnsweredQuestion
 from src.domain.models.inference import (
     StudentSearchResults,
 )
-from src.infrastructure.dataset.json_loader import RagDatasetJSONLoader
+from src.infrastructure.dataset.reader import RagDatasetJSONReader
 
 
 @validate_call()
@@ -24,11 +24,7 @@ def entrypoint_evaluate(
     console = get_console()
     console.print("\n[bold blue]--- Evaluation ---[/]\n")
 
-    dataset = RagDatasetJSONLoader().load(dataset_file_path)
-    if not dataset:
-        raise StorageFileNotFoundError(dataset_file_path)
-
-    dataset.rag_questions = dataset.rag_questions
+    dataset = RagDatasetJSONReader().read(dataset_file_path)
 
     if not predictions_file_path.exists():
         raise StorageFileNotFoundError(predictions_file_path)

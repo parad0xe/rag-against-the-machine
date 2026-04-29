@@ -7,58 +7,23 @@ from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 from tqdm.rich import tqdm
 
-from src.domain.models.base import Document, ManifestFileCache
+from src.infrastructure.index_stores.base import BaseIndexStoreSync
 
 logger = logging.getLogger(__file__)
 
 
-class ChromaIndexStoreSync:
-    @property
-    def name(self) -> str:
-        return "Chroma"
-
-    @property
-    def enable(self) -> bool:
-        return self._enable
-
-    @property
-    def addition_enable(self) -> bool:
-        return self._addition_enable
-
+class ChromaIndexStoreSync(BaseIndexStoreSync):
     def __init__(
         self,
         dir_path: Path,
         embedding_model_name: str,
         batch_size: int = 32,
-        enable: bool = True,
         addition_enable: bool = True,
     ) -> None:
+        super().__init__(name="Chroma", addition_enable=addition_enable)
         self._dir_path = dir_path
         self._embedding_model_name = embedding_model_name
         self._batch_size = batch_size
-        self._enable = enable
-        self._addition_enable = addition_enable
-        self._add_documents: list[Document] = []
-        self._delete_chunk_ids: set[str] = set()
-
-    def delete(self, expired_chunk_ids: set[str]) -> None:
-        self._delete_chunk_ids.update(expired_chunk_ids)
-
-    def track(
-        self,
-        document: Document,
-        cached_file: ManifestFileCache | None = None,
-    ) -> None:
-        doc_changed = (
-            not cached_file or cached_file.file_hash != document.file.hash
-        )
-        in_store = cached_file and self.name in cached_file.stores
-
-        if doc_changed or not in_store:
-            if in_store and cached_file:
-                self._delete_chunk_ids.update(cached_file.chunk_ids)
-            if self._addition_enable and doc_changed:
-                self._add_documents.append(document)
 
     def commit(self, require_reset: bool = False) -> None:
         logger.info(

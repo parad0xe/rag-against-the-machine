@@ -18,13 +18,12 @@ from rich.progress import (
 )
 
 from src.config import settings
-from src.domain.exceptions.storage import StorageFileNotFoundError
 from src.domain.models.inference import (
     MinimalAnswer,
     StudentSearchResultsAndAnswer,
 )
 from src.factories.retriever import RetrieverFactory
-from src.infrastructure.dataset.json_loader import RagDatasetJSONLoader
+from src.infrastructure.dataset.reader import RagDatasetJSONReader
 from src.infrastructure.llm.assistants.qwen import QwenAssistantLLM
 from src.utils.file import file_write_json
 from src.utils.format import build_context_from_chunks, parse_llm_thought
@@ -61,9 +60,7 @@ def entrypoint_answer_dataset(
             embedding_model_name,
         )
 
-        dataset = RagDatasetJSONLoader().load(dataset_file_path)
-        if not dataset:
-            raise StorageFileNotFoundError(dataset_file_path)
+        dataset = RagDatasetJSONReader().read(dataset_file_path)
 
         llm = QwenAssistantLLM(model_name=settings.llm_model)
 

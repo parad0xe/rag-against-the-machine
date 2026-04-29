@@ -5,7 +5,7 @@ from src.domain.models.base import Chunk
 from src.utils.file import file_load_content
 
 
-class ChunksJSONLoader:
+class ChunkJSONReader:
     def __init__(self, file_path: Path) -> None:
         self._file_path = file_path
         self._cache: dict[str, Chunk] | None = None

@@ -12,15 +12,13 @@ from src.application.services.indexer import Indexer
 from src.config import settings
 from src.domain.exceptions.document import NoDocumentError
 from src.infrastructure.document.loader import DocumentLoader
-from src.infrastructure.file.local_loader import LocalFileLoader
+from src.infrastructure.file.reader import LocalFileReader
 from src.infrastructure.index_stores.bm25.sync import BM25IndexStoreSync
 from src.infrastructure.index_stores.chroma.sync import ChromaIndexStoreSync
 from src.infrastructure.index_stores.raw.sync import RawIndexStoreSync
 from src.infrastructure.index_stores.registry import IndexStoreRegistry
-from src.infrastructure.manifest.json_storage import (
-    ManifestJSONStorage,
-)
 from src.infrastructure.manifest.manager import ManifestManager
+from src.infrastructure.manifest.repository import ManifestJSONRepository
 from src.utils.common import parse_extensions
 
 logger = logging.getLogger(__file__)
@@ -55,7 +53,7 @@ def entrypoint_index(
     ):
         manifest_manager = ManifestManager(
             file_path=manifest_file_path,
-            manifest_storage=ManifestJSONStorage(),
+            manifest_repository=ManifestJSONRepository(),
             extensions=parsed_extensions,
             repositories=repositories,
             embedding_model_name=embedding_model_name,
@@ -79,7 +77,7 @@ def entrypoint_index(
             manifest_manager=manifest_manager,
             extensions=parsed_extensions,
             index_store_registry=IndexStoreRegistry(*sync_stores),
-            file_loader=LocalFileLoader(),
+            file_loader=LocalFileReader(),
             document_loader=DocumentLoader(),
         )
     console.print("[bold green][ OK ][/] Initialization complete.\n")

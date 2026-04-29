@@ -1,52 +1,33 @@
 import logging
-import shutil
 from pathlib import Path
 
 import bm25s
 
 from src.domain.exceptions.base import RagError
 from src.domain.models.base import Document, ManifestFileCache
+from src.infrastructure.index_stores.base import BaseIndexStoreSync
+from src.utils.file import safe_rmtree
 
 logger = logging.getLogger(__file__)
 
 
-class BM25IndexStoreSync:
-    @property
-    def name(self) -> str:
-        return "BM25"
-
-    @property
-    def enable(self) -> bool:
-        return self._enable
-
-    @property
-    def addition_enable(self) -> bool:
-        return self._addition_enable
-
+class BM25IndexStoreSync(BaseIndexStoreSync):
     def __init__(
         self,
         dir_path: Path,
-        enable: bool = True,
         addition_enable: bool = True,
     ) -> None:
+        super().__init__(name="BM25", addition_enable=addition_enable)
         self._dir_path = dir_path
-        self._enable = enable
-        self._addition_enable = addition_enable
-        self._add_documents: list[Document] = []
-        self._delete_chunk_ids: set[str] = set()
-
-    def delete(self, expired_chunk_ids: set[str]) -> None:
-        self._delete_chunk_ids.update(expired_chunk_ids)
 
     def track(
         self,
         document: Document,
         cached_file: ManifestFileCache | None = None,
     ) -> None:
-        if cached_file and self.name in cached_file.stores:
-            self._delete_chunk_ids.update(cached_file.chunk_ids)
         if self._addition_enable:
             self._add_documents.append(document)
+            document.stores.add(self.name)
 
     def commit(self, require_reset: bool = False) -> None:
         if not self._add_documents:
@@ -65,9 +46,8 @@ class BM25IndexStoreSync:
             chunks.extend(doc.chunks)
             chunk_ids.extend({"id": cid} for cid in doc.chunk_ids)
 
-        if self._dir_path.exists():
-            shutil.rmtree(self._dir_path)
-            self._dir_path.mkdir(parents=True, exist_ok=True)
+        safe_rmtree(self._dir_path)
+        self._dir_path.mkdir(parents=True, exist_ok=True)
 
         chunk_tokens = bm25s.tokenize(chunks)
         retriever = bm25s.BM25(corpus=chunk_ids)

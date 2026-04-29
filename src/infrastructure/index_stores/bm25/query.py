@@ -3,31 +3,20 @@ from pathlib import Path
 
 import bm25s
 
+from src.infrastructure.index_stores.base import BaseIndexStoreQuery
+
 logger = logging.getLogger(__file__)
 
 
-class BM25IndexStoreQuery:
-    @property
-    def name(self) -> str:
-        return "BM25"
-
-    @property
-    def weight(self) -> float:
-        return self._weight
-
-    @property
-    def enable(self) -> bool:
-        return self._enable
-
+class BM25IndexStoreQuery(BaseIndexStoreQuery):
     def __init__(
         self,
         dir_path: Path,
         enable: bool = True,
         weight: float = 1.0,
     ) -> None:
+        super().__init__(name="BM25", enable=enable, weight=weight)
         self._dir_path = dir_path
-        self._enable = enable
-        self._weight = weight
         self._retriever: bm25s.BM25 | None = None
 
     def search(self, query: str, k: int) -> list[str] | None:

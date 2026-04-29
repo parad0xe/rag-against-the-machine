@@ -2,26 +2,15 @@ import logging
 from pathlib import Path
 
 import chromadb
-from chromadb import Collection
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
+
+from src.infrastructure.index_stores.base import BaseIndexStoreQuery
 
 logger = logging.getLogger(__file__)
 
 
-class ChromaIndexStoreQuery:
-    @property
-    def name(self) -> str:
-        return "Chroma"
-
-    @property
-    def weight(self) -> float:
-        return self._weight
-
-    @property
-    def enable(self) -> bool:
-        return self._enable
-
+class ChromaIndexStoreQuery(BaseIndexStoreQuery):
     def __init__(
         self,
         dir_path: Path,
@@ -29,14 +18,10 @@ class ChromaIndexStoreQuery:
         enable: bool = True,
         weight: float = 1.0,
     ) -> None:
-        # 2. Le code qui était dans l'interface est maintenant ici !
+        super().__init__(name="Chroma", enable=enable, weight=weight)
         self._dir_path = dir_path
-        self._enable = enable
-        self._weight = weight
-
-        # Initialisation spécifique à Chroma
-        self._embedding_model_name: str = embedding_model_name
-        self._collection: Collection | None = None
+        self._embedding_model_name = embedding_model_name
+        self._collection: chromadb.Collection | None = None
         self._model: SentenceTransformer | None = None
 
     def search(self, query: str, k: int) -> list[str] | None:

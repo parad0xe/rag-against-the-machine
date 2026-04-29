@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Iterable
 
-from src.application.ports.manifest import ManifestStoragePort
+from src.application.ports.manifest import ManifestRepositoryPort
 from src.domain.models.base import Document, File, Manifest, ManifestFileCache
+from src.utils.common import compute_fingerprint
 
 logger = logging.getLogger(__file__)
 
@@ -25,29 +27,41 @@ class ManifestManager:
     def __init__(
         self,
         file_path: Path,
-        manifest_storage: ManifestStoragePort,
+        manifest_repository: ManifestRepositoryPort,
         extensions: tuple[str] | list[str],
         embedding_model_name: str,
         repositories: list[Path],
         chunk_size: int,
         with_semantic: bool,
-        fingerprint_seed: list[str | int | bool] | None = None,
+        fingerprint_seed: Iterable[str | int | bool] | None = None,
     ) -> None:
-        self._file_path: Path = file_path
-        self._manifest_storage = manifest_storage
-
-        manifest, mismatch = manifest_storage.load(
-            file_path=file_path,
-            repositories=repositories,
-            embedding_model_name=embedding_model_name,
-            chunk_size=chunk_size,
-            with_semantic=with_semantic,
-            fingerprint_seed=fingerprint_seed,
-        )
-
-        self._fingerprint_mismatch: bool = mismatch
-        self._manifest: Manifest = manifest
+        self._file_path = file_path
+        self._manifest_repository = manifest_repository
         self._expired_chunk_ids: set[str] = set()
+
+        loaded_manifest = manifest_repository.load(file_path)
+
+        current_fingerprint = compute_fingerprint(fingerprint_seed)
+
+        if loaded_manifest:
+            self._fingerprint_mismatch = (
+                loaded_manifest.fingerprint != current_fingerprint
+            )
+            self._manifest = loaded_manifest
+            self._manifest.embedding_model_name = embedding_model_name
+            self._manifest.with_semantic = with_semantic
+            self._manifest.repositories = repositories.copy()
+            self._manifest.chunk_size = chunk_size
+            self._manifest.fingerprint = current_fingerprint
+        else:
+            self._fingerprint_mismatch = False
+            self._manifest = Manifest(
+                embedding_model_name=embedding_model_name,
+                with_semantic=with_semantic,
+                repositories=repositories.copy(),
+                chunk_size=chunk_size,
+                fingerprint=current_fingerprint,
+            )
 
         self.__sync(extensions)
 
@@ -71,36 +85,31 @@ class ManifestManager:
         )
 
     def commit(self) -> None:
-        self._manifest_storage.save(self._file_path, self.manifest)
+        self._manifest_repository.save(self._file_path, self.manifest)
 
     def __sync(self, extensions: tuple[str] | list[str]) -> None:
-        exts_to_keep, exts_to_delete = self._get_extension_sets(extensions)
+        if self._fingerprint_mismatch:
+            self._purge_extensions(set(self.manifest.files_by_ext.keys()))
+            return
 
-        self._purge_extensions(exts_to_delete)
-        self._validate_extensions(exts_to_keep)
+        target_exts = (
+            set(self.manifest.files_by_ext.keys())
+            if extensions and extensions[0] == "*"
+            else set(extensions)
+        )
 
-    def _get_extension_sets(
-        self, extensions: tuple[str] | list[str]
-    ) -> tuple[set[str], set[str]]:
-        if self.fingerprint_mismatch:
-            return set(), set(self.manifest.files_by_ext.keys())
-
-        if extensions and extensions[0] == "*":
-            target_exts = set(self.manifest.files_by_ext.keys())
-        else:
-            target_exts = set(extensions)
-
-        current_exts = target_exts.union(self.manifest.files_by_ext.keys())
+        current_exts = set(self.manifest.files_by_ext.keys())
         exts_to_keep = current_exts.intersection(target_exts)
         exts_to_delete = current_exts - target_exts
 
-        return exts_to_keep, exts_to_delete
+        self._purge_extensions(exts_to_delete)
+        self._validate_extensions(exts_to_keep)
 
     def _purge_extensions(self, exts_to_delete: set[str]) -> None:
         for ext in exts_to_delete:
             if ext in self.manifest.files_by_ext:
                 for cached_file in self.manifest.files_by_ext[ext].values():
-                    self.expired_chunk_ids.update(cached_file.chunk_ids)
+                    self._expired_chunk_ids.update(cached_file.chunk_ids)
                 del self.manifest.files_by_ext[ext]
 
     def _validate_extensions(self, exts_to_keep: set[str]) -> None:
@@ -117,7 +126,7 @@ class ManifestManager:
                 ext
             ].items():
                 if not self._is_file_valid(cached_file, resolved_repos):
-                    self.expired_chunk_ids.update(cached_file.chunk_ids)
+                    self._expired_chunk_ids.update(cached_file.chunk_ids)
                     missing_file_ids.append(file_id)
 
             for file_id in missing_file_ids:

@@ -1,12 +1,26 @@
 from pathlib import Path
+from typing import Literal, overload
 
 from src.domain.models.base import File
 from src.utils.common import md5
 from src.utils.file import file_load_content, get_extension
 
 
-class LocalFileLoader:
-    def load(
+class LocalFileReader:
+    @overload
+    def read(
+        self, file_path: Path, ignore_errors: Literal[False] = False
+    ) -> File: ...
+
+    @overload
+    def read(
+        self, file_path: Path, ignore_errors: Literal[True]
+    ) -> File | None: ...
+
+    @overload
+    def read(self, file_path: Path, ignore_errors: bool) -> File | None: ...
+
+    def read(
         self,
         file_path: Path,
         ignore_errors: bool = False,

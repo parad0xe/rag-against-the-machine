@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol, overload
 
 from src.domain.models.base import Document, File, Manifest, ManifestFileCache
 
@@ -21,15 +21,26 @@ class ManifestManagerPort(Protocol):
     def commit(self) -> None: ...
 
 
-class ManifestStoragePort(Protocol):
+class ManifestRepositoryPort(Protocol):
     def save(self, file_path: Path, manifest: Manifest) -> None: ...
+
+    @overload
+    def load(
+        self, file_path: Path, ignore_errors: Literal[False] = False
+    ) -> Manifest: ...
+
+    @overload
+    def load(
+        self, file_path: Path, ignore_errors: Literal[True]
+    ) -> Manifest | None: ...
+
+    @overload
+    def load(
+        self, file_path: Path, ignore_errors: bool
+    ) -> Manifest | None: ...
 
     def load(
         self,
         file_path: Path,
-        embedding_model_name: str,
-        repositories: list[Path],
-        chunk_size: int,
-        with_semantic: bool,
-        fingerprint_seed: list[str | int | bool] | None = None,
-    ) -> tuple[Manifest, bool]: ...
+        ignore_errors: bool = False,
+    ) -> Manifest | None: ...
