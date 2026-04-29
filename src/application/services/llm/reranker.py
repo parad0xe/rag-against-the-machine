@@ -7,8 +7,8 @@ logger = logging.getLogger(__file__)
 
 
 class RerankerService(LLMReRankerPort):
-    def __init__(self, scoring_engine: ReRankerEnginePort) -> None:
-        self._scoring_engine = scoring_engine
+    def __init__(self, reranker_engine: ReRankerEnginePort) -> None:
+        self._reranker_engine = reranker_engine
 
     def rerank(
         self, query: str, chunks: Sequence[str], top_k: int = 5
@@ -17,7 +17,7 @@ class RerankerService(LLMReRankerPort):
             return []
 
         try:
-            scores = self._scoring_engine.predict_scores(query, chunks)
+            scores = self._reranker_engine.predict_scores(query, chunks)
         except Exception as e:
             logger.error(
                 f"Re-ranking failed ({e.__class__.__name__}). "

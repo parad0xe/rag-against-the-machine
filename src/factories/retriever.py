@@ -44,14 +44,14 @@ class RetrieverFactory:
 
         causal_engine = HuggingFaceCausalEngine(model_name=settings.llm_model)
         translation_engine = HuggingFaceTranslationEngine()
-        scoring_engine = ReRankerEngine()
+        reranker_engine = ReRankerEngine()
 
         assistant = AssistantService(llm_engine=causal_engine)
         expander = QueryExpanderService(llm_engine=causal_engine)
         translator = QueryTranslatorService(
             translation_engine=translation_engine
         )
-        reranker = RerankerService(scoring_engine=scoring_engine)
+        reranker = RerankerService(reranker_engine=reranker_engine)
 
         query_stores: list[IndexStoreQueryPort] = [
             BM25IndexStoreQuery(bm25_dir_path, weight=0.6),
