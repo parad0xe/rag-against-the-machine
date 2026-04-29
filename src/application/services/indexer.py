@@ -59,7 +59,7 @@ class Indexer:
             self._viewed_file_paths.add(file_path)
 
             file = self._file_loader.read(file_path, ignore_errors=True)
-            if not file:
+            if not file or not file.content:
                 continue
 
             cached_file = self._manifest_manager.get(file)

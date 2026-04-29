@@ -39,7 +39,9 @@ class ManifestManager:
         self._manifest_repository = manifest_repository
         self._expired_chunk_ids: set[str] = set()
 
-        loaded_manifest = manifest_repository.load(file_path)
+        loaded_manifest = manifest_repository.load(
+            file_path, ignore_errors=True
+        )
 
         current_fingerprint = compute_fingerprint(fingerprint_seed)
 

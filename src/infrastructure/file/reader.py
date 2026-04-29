@@ -32,6 +32,10 @@ class LocalFileReader:
         if content is None:
             return None
 
+        content = content.strip()
+        if not content:
+            return None
+
         str_file_path = str(file_path)
 
         return File(

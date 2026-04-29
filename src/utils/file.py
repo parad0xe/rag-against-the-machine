@@ -130,7 +130,7 @@ def safe_rmtree(dir_path: Path) -> None:
 
     if not resolved_path.is_relative_to(resolved_base):
         raise StorageError(
-            f"Security violation: Deletion forbidden outside of "
+            f"Security violation: deletion forbidden outside of "
             f"'{resolved_base}'",
             dir_path,
         )

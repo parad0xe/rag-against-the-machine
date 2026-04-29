@@ -46,8 +46,9 @@ class BM25IndexStoreSync(BaseIndexStoreSync):
             chunks.extend(doc.chunks)
             chunk_ids.extend({"id": cid} for cid in doc.chunk_ids)
 
-        safe_rmtree(self._dir_path)
-        self._dir_path.mkdir(parents=True, exist_ok=True)
+        if self._dir_path.exists():
+            safe_rmtree(self._dir_path)
+            self._dir_path.mkdir(parents=True, exist_ok=True)
 
         chunk_tokens = bm25s.tokenize(chunks)
         retriever = bm25s.BM25(corpus=chunk_ids)
