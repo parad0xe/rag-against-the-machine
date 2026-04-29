@@ -1,54 +1,26 @@
 from pathlib import Path
-from typing import Literal, Protocol, overload
-
-from src.domain.models.base import (
-    Chunk,
-    File,
-)
-from src.domain.models.dataset import RagDataset
+from typing import Literal, Protocol, TypeVar, overload
 
 
-class FileReaderPort(Protocol):
+T_co = TypeVar("T_co", covariant=True)
+
+
+class ReaderPort(Protocol[T_co]):
     @overload
     def read(
         self, file_path: Path, ignore_errors: Literal[False] = False
-    ) -> File: ...
+    ) -> T_co: ...
 
     @overload
     def read(
         self, file_path: Path, ignore_errors: Literal[True]
-    ) -> File | None: ...
+    ) -> T_co | None: ...
 
     @overload
-    def read(self, file_path: Path, ignore_errors: bool) -> File | None: ...
+    def read(self, file_path: Path, ignore_errors: bool) -> T_co | None: ...
 
     def read(
         self,
         file_path: Path,
         ignore_errors: bool = False,
-    ) -> File | None: ...
-
-
-class RagDatasetReaderPort(Protocol):
-    @overload
-    def read(
-        self, file_path: Path, ignore_errors: Literal[False] = False
-    ) -> RagDataset: ...
-
-    @overload
-    def read(
-        self, file_path: Path, ignore_errors: Literal[True]
-    ) -> RagDataset | None: ...
-
-    @overload
-    def read(
-        self, file_path: Path, ignore_errors: bool
-    ) -> RagDataset | None: ...
-
-    def read(
-        self, file_path: Path, ignore_errors: bool = False
-    ) -> RagDataset | None: ...
-
-
-class ChunkReaderPort(Protocol):
-    def load(self, chunk_ids: list[str]) -> dict[str, Chunk]: ...
+    ) -> T_co | None: ...

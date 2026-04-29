@@ -1,17 +1,14 @@
-from abc import abstractmethod
-from pathlib import Path
 from typing import Protocol
 
 from src.domain.models.base import (
+    Chunk,
     Document,
     File,
-    Manifest,
     ManifestFileCache,
 )
 
 
 class DocumentLoaderPort(Protocol):
-    @abstractmethod
     def load(
         self,
         file: File,
@@ -20,9 +17,5 @@ class DocumentLoaderPort(Protocol):
     ) -> Document: ...
 
 
-class ManifestLoaderPort(Protocol):
-    def load(
-        self,
-        file_path: Path,
-        ignore_errors: bool = False,
-    ) -> Manifest | None: ...
+class ChunksLoaderPort(Protocol):
+    def load(self, chunk_ids: list[str]) -> dict[str, Chunk]: ...

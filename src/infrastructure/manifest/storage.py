@@ -12,26 +12,26 @@ from src.utils.file import file_load_content, file_write_json
 logger = logging.getLogger(__file__)
 
 
-class ManifestJSONRepository:
+class ManifestJSONStorage:
     def save(self, file_path: Path, manifest: Manifest) -> None:
         file_write_json(file_path, manifest.model_dump_json(indent=2))
 
     @overload
-    def load(
+    def read(
         self, file_path: Path, ignore_errors: Literal[False] = False
     ) -> Manifest: ...
 
     @overload
-    def load(
+    def read(
         self, file_path: Path, ignore_errors: Literal[True]
     ) -> Manifest | None: ...
 
     @overload
-    def load(
+    def read(
         self, file_path: Path, ignore_errors: bool
     ) -> Manifest | None: ...
 
-    def load(
+    def read(
         self,
         file_path: Path,
         ignore_errors: bool = False,

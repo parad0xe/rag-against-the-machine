@@ -18,7 +18,7 @@ from src.infrastructure.index_stores.chroma.sync import ChromaIndexStoreSync
 from src.infrastructure.index_stores.raw.sync import RawIndexStoreSync
 from src.infrastructure.index_stores.registry import IndexStoreRegistry
 from src.infrastructure.manifest.manager import ManifestManager
-from src.infrastructure.manifest.repository import ManifestJSONRepository
+from src.infrastructure.manifest.storage import ManifestJSONStorage
 from src.utils.common import parse_extensions
 
 logger = logging.getLogger(__file__)
@@ -53,7 +53,7 @@ def entrypoint_index(
     ):
         manifest_manager = ManifestManager(
             file_path=manifest_file_path,
-            manifest_repository=ManifestJSONRepository(),
+            storage=ManifestJSONStorage(),
             extensions=parsed_extensions,
             repositories=repositories,
             embedding_model_name=embedding_model_name,

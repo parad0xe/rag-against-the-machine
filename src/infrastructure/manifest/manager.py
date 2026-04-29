@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import Iterable
 
-from src.application.ports.manifest import ManifestRepositoryPort
+from src.application.ports.manifest import ManifestStoragePort
 from src.domain.models.base import Document, File, Manifest, ManifestFileCache
 from src.utils.common import compute_fingerprint
 
@@ -27,7 +27,7 @@ class ManifestManager:
     def __init__(
         self,
         file_path: Path,
-        manifest_repository: ManifestRepositoryPort,
+        storage: ManifestStoragePort,
         extensions: tuple[str] | list[str],
         embedding_model_name: str,
         repositories: list[Path],
@@ -36,12 +36,10 @@ class ManifestManager:
         fingerprint_seed: Iterable[str | int | bool] | None = None,
     ) -> None:
         self._file_path = file_path
-        self._manifest_repository = manifest_repository
+        self._storage = storage
         self._expired_chunk_ids: set[str] = set()
 
-        loaded_manifest = manifest_repository.load(
-            file_path, ignore_errors=True
-        )
+        loaded_manifest = storage.read(file_path, ignore_errors=True)
 
         current_fingerprint = compute_fingerprint(fingerprint_seed)
 
@@ -87,7 +85,7 @@ class ManifestManager:
         )
 
     def commit(self) -> None:
-        self._manifest_repository.save(self._file_path, self.manifest)
+        self._storage.save(self._file_path, self.manifest)
 
     def __sync(self, extensions: tuple[str] | list[str]) -> None:
         if self._fingerprint_mismatch:

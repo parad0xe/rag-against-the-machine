@@ -9,9 +9,8 @@ from src.application.ports.index_store import (
 )
 from src.application.ports.loader import DocumentLoaderPort
 from src.application.ports.manifest import ManifestManagerPort
-from src.application.ports.reader import (
-    FileReaderPort,
-)
+from src.application.ports.reader import ReaderPort
+from src.domain.models.base import File
 from src.utils.file import ensure_valid_dir_path, iter_file_paths
 
 logger = logging.getLogger(__file__)
@@ -23,13 +22,13 @@ class Indexer:
         manifest_manager: ManifestManagerPort,
         extensions: list[str],
         index_store_registry: IndexStoreRegistryPort[IndexStoreSyncPort],
-        file_loader: FileReaderPort,
+        file_loader: ReaderPort[File],
         document_loader: DocumentLoaderPort,
     ) -> None:
         self._manifest_manager = manifest_manager
         self._index_store_registry = index_store_registry
         self._extensions: list[str] = extensions
-        self._file_loader: FileReaderPort = file_loader
+        self._file_loader = file_loader
         self._document_loader: DocumentLoaderPort = document_loader
         self._viewed_file_paths: set[Path] = set()
         self.founded_documents: int = 0

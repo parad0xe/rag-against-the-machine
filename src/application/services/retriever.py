@@ -1,12 +1,11 @@
 from typing import Generator
 
-from src.application.ports.reader import ChunkReaderPort
-
 from src.application.ports.index_store import (
     IndexStoreQueryPort,
     IndexStoreRegistryPort,
 )
 from src.application.ports.llm import LLMTranslatorPort
+from src.application.ports.loader import ChunksLoaderPort
 from src.domain.models.base import Chunk
 from src.domain.models.dataset import MinimalSource, RagDataset
 from src.domain.models.inference import MinimalSearchResults
@@ -17,7 +16,7 @@ class Retriever:
     def __init__(
         self,
         index_store_registry: IndexStoreRegistryPort[IndexStoreQueryPort],
-        chunks_loader: ChunkReaderPort,
+        chunks_loader: ChunksLoaderPort,
     ) -> None:
         self._index_store_registry = index_store_registry
         self._chunks_loader = chunks_loader

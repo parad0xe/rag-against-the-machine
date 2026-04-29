@@ -1,6 +1,7 @@
 from pathlib import Path
-from typing import Literal, Protocol, overload
+from typing import Protocol
 
+from src.application.ports.reader import ReaderPort
 from src.domain.models.base import Document, File, Manifest, ManifestFileCache
 
 
@@ -21,26 +22,5 @@ class ManifestManagerPort(Protocol):
     def commit(self) -> None: ...
 
 
-class ManifestRepositoryPort(Protocol):
+class ManifestStoragePort(ReaderPort[Manifest], Protocol):
     def save(self, file_path: Path, manifest: Manifest) -> None: ...
-
-    @overload
-    def load(
-        self, file_path: Path, ignore_errors: Literal[False] = False
-    ) -> Manifest: ...
-
-    @overload
-    def load(
-        self, file_path: Path, ignore_errors: Literal[True]
-    ) -> Manifest | None: ...
-
-    @overload
-    def load(
-        self, file_path: Path, ignore_errors: bool
-    ) -> Manifest | None: ...
-
-    def load(
-        self,
-        file_path: Path,
-        ignore_errors: bool = False,
-    ) -> Manifest | None: ...
