@@ -22,7 +22,10 @@ def entrypoint_evaluate(
     ks: tuple[int, ...] = (1, 3, 5, 10),
 ) -> None:
     console = get_console()
-    console.print("\n[bold blue]--- Evaluation ---[/]\n")
+
+    console.print()
+    console.rule("[bold blue]Evaluate[/]", style="blue")
+    console.print()
 
     dataset = RagDatasetJSONReader().read(dataset_file_path)
 
@@ -71,12 +74,15 @@ def entrypoint_evaluate(
 
     for k in valid_ks:
         if evaluated_sources > 0:
-            final_score = total_recalls[k] / evaluated_sources
+            final_score = (total_recalls[k] / evaluated_sources) * 100.0
         else:
             final_score = 0.0
-        table.add_row(f"Recall@{k}", f"{final_score:.4f}")
+        table.add_row(f"Recall@{k}", f"{final_score:.2f}")
 
     console.print(table)
     console.print(
         f"\n[dim]Questions evaluated: {len(dataset.rag_questions)}[/dim]\n"
     )
+
+    console.rule("[bold green]Evaluate completed[/]", style="blue")
+    console.print()

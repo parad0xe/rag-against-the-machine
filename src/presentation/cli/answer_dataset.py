@@ -17,14 +17,12 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-from src.config import settings
 from src.domain.models.inference import (
     MinimalAnswer,
     StudentSearchResultsAndAnswer,
 )
 from src.factories.retriever import RetrieverFactory
 from src.infrastructure.dataset.reader import RagDatasetJSONReader
-from src.infrastructure.llm.assistants.qwen import QwenAssistantLLM
 from src.utils.file import file_write_json
 from src.utils.format import build_context_from_chunks, parse_llm_thought
 
@@ -44,7 +42,9 @@ def entrypoint_answer_dataset(
 ) -> None:
     console = get_console()
 
-    console.print("\n[bold blue]--- Dataset Search Processing ---[/]\n")
+    console.print()
+    console.rule("[bold blue]Answer dataset[/]", style="blue")
+    console.print()
 
     console.print("[bold cyan][1/3][/] Initializing environment...")
     with console.status(
@@ -52,7 +52,7 @@ def entrypoint_answer_dataset(
         spinner="dots",
         spinner_style="bold magenta",
     ):
-        retriever, translator = RetrieverFactory.build(
+        retriever, llm = RetrieverFactory.build(
             bm25_dir_path,
             chroma_dir_path,
             chunks_file_path,
@@ -61,8 +61,6 @@ def entrypoint_answer_dataset(
         )
 
         dataset = RagDatasetJSONReader().read(dataset_file_path)
-
-        llm = QwenAssistantLLM(model_name=settings.llm_model)
 
     console.print("[bold green][ OK ][/] Models and data loaded.\n")
 
@@ -73,7 +71,6 @@ def entrypoint_answer_dataset(
 
     results_stream = retriever.search_dataset_stream(
         dataset=dataset,
-        translator=translator,
         k=k,
     )
 
@@ -136,3 +133,6 @@ def entrypoint_answer_dataset(
         f"[bold green][ OK ][/] Dataset processing finished in "
         f"[bold yellow]{elapsed_time:.2f}s[/].\n"
     )
+
+    console.rule("[bold green]Answer dataset completed[/]", style="blue")
+    console.print()

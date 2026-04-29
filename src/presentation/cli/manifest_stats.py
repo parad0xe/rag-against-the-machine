@@ -12,7 +12,10 @@ from src.infrastructure.manifest.storage import ManifestJSONStorage
 @validate_call()
 def entrypoint_manifest_stats(manifest_file_path: Path) -> None:
     console = get_console()
-    console.print("\n[bold blue]--- Manifest statistics ---[/]\n")
+
+    console.print()
+    console.rule("[bold blue]Manifest statistics[/]", style="blue")
+    console.print()
 
     service = ManifestService(storage=ManifestJSONStorage())
     stats = service.get_stats(manifest_file_path)
@@ -58,4 +61,7 @@ def entrypoint_manifest_stats(manifest_file_path: Path) -> None:
         ext_table.add_row(ext, str(s["file_count"]), str(s["chunk_count"]))
 
     console.print(ext_table)
+    console.print()
+
+    console.rule("[bold green]Manifest statistics completed[/]", style="blue")
     console.print()

@@ -50,7 +50,9 @@ def entrypoint_index(
 ) -> None:
     console = get_console()
 
-    console.print("\n[bold blue]--- Indexing ---[/]\n")
+    console.print()
+    console.rule("[bold blue]Indexing[/]", style="blue")
+    console.print()
 
     repositories = list({repo.resolve() for repo in repositories})
     parsed_extensions: list[str] = parse_extensions(extensions)
@@ -173,7 +175,7 @@ def entrypoint_index(
                     ),
                 )
 
-    console.print("\n[bold blue]--- Sync Summary ---[/]")
+    console.print("\n[bold blue]--- Sync summary ---[/]")
     table = Table(
         show_header=True,
         header_style="bold magenta",
@@ -200,3 +202,6 @@ def entrypoint_index(
         f"\n[bold green][ OK ][/] Indexes successfully updated in "
         f"[bold yellow]{elapsed_time:.2f}s[/].\n"
     )
+
+    console.rule("[bold green]Indexing completed[/]", style="blue")
+    console.print()

@@ -3,6 +3,7 @@ import textwrap
 from threading import Thread
 from typing import Any, Generator, cast
 
+import torch
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -30,6 +31,7 @@ class QwenAssistantLLM:
                 torch_dtype="auto",
                 device_map="auto",
             )
+            self.model.eval()
         except MemoryError as e:
             raise RagError("Failed to load LLM into memory") from e
 
@@ -42,35 +44,52 @@ class QwenAssistantLLM:
 
         system_prompt = textwrap.dedent(
             """
-            You are a strict code analysis AI. You must answer the user's
-            question using ONLY the information provided in the context.
-            If the answer cannot be found in the context, you must reply
-            with exactly one sentence stating this, and you must NOT
-            generate the "### Sources" section. Do not guess.
+            You are a strict, robotic code analysis AI. You must answer
+            the user's question using ONLY the information
+            provided in the context.
+
+            If the answer cannot be found, reply ONLY with:
+            "I could not find enough information to answer."
+
+            You are FORBIDDEN to use conversational filler
+            (e.g., "Here is the answer", "Based on the context").
+
+            Sourcing all the best source files.
+
+            You MUST use this EXACT format:
+            ### Answer
+            [Your concise answer here]
+
+            ### Sources
+            - [File: <file_path> (Chars: <start>-<end>)]
+
+            EXAMPLE OF VALID RESPONSE:
+            ### Answer
+            The `AuthenticationService` uses JWT
+            tokens with a 15-minute expiration time.
+
+            ### Sources
+            - [File: src/auth/service.py (Chars: 450-512)]
             """
         ).strip()
 
-        user_prompt = textwrap.dedent(
+        assistant_prompt = textwrap.dedent(
             f"""
             <context>
             {context}
             </context>
+            """
+        )
 
+        user_prompt = textwrap.dedent(
+            f"""
             Question: {query}
-
-            Provide your response using EXACTLY the following structure.
-            Do not add any conversational filler.
-
-            ### Answer
-            [Write your concise answer here, based strictly on context]
-
-            ### Sources
-            - [File: <file_path> (Chars: <start>-<end>)]
             """
         ).strip()
 
         messages = [
             {"role": "system", "content": system_prompt},
+            {"role": "assistant", "content": assistant_prompt},
             {"role": "user", "content": user_prompt},
         ]
 
@@ -98,19 +117,102 @@ class QwenAssistantLLM:
             **inputs,
             streamer=streamer,
             max_new_tokens=2048,
-            temperature=0.2,
-            top_p=0.95,
-            top_k=20,
-            min_p=0.0,
-            repetition_penalty=1.05,
-            do_sample=True,
+            repetition_penalty=1.0,
+            do_sample=False,
             pad_token_id=self.tokenizer.eos_token_id,
         )
 
-        thread = Thread(
-            target=cast(Any, self.model).generate, kwargs=generation_kwargs
-        )
+        def generate_task() -> None:
+            try:
+                with torch.inference_mode():
+                    cast(Any, self.model).generate(**generation_kwargs)
+            except Exception as e:
+                logger.error(
+                    f"LLM generation failed ({e.__class__.__name__}): {e}"
+                )
+
+        thread = Thread(target=generate_task)
         thread.start()
 
         for new_text in streamer:
             yield new_text
+
+    def expand_query(self, query: str) -> str:
+        system_prompt = textwrap.dedent(
+            """
+            You are a strict keyword extraction engine.
+            Extract technical keywords, synonyms, and broader concepts
+            from the user's query.
+            Output ONLY a single line of comma-separated words.
+            CRITICAL: NO markdown, NO bullet points, NO lists,
+            NO conversational text.
+            """
+        ).strip()
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {
+                "role": "user",
+                "content": (
+                    "How does the app validate the authentication token?"
+                ),
+            },
+            {
+                "role": "assistant",
+                "content": (
+                    "JWT, expiration, signature, AuthGuard, "
+                    "middleware, bearer, payload, decode"
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Why is my React component re-rendering infinitely?"
+                ),
+            },
+            {
+                "role": "assistant",
+                "content": (
+                    "React, component, re-render, infinite loop, "
+                    "useEffect, state dependency, hooks, render cycle"
+                ),
+            },
+            {"role": "user", "content": query},
+        ]
+
+        text = self.tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
+            enable_thinking=False,
+        )
+
+        inputs = self.tokenizer(
+            text,
+            return_tensors="pt",
+            truncation=True,
+            max_length=512,
+        ).to(self.model.device)
+
+        try:
+            with torch.inference_mode():
+                outputs = cast(Any, self.model).generate(
+                    **inputs,
+                    max_new_tokens=150,
+                    do_sample=False,
+                    repetition_penalty=1.0,
+                    pad_token_id=self.tokenizer.eos_token_id,
+                )
+
+            input_length = inputs["input_ids"].shape[1]
+            generated_tokens = outputs[0][input_length:]
+
+            hypothetical_doc = self.tokenizer.decode(
+                generated_tokens, skip_special_tokens=True
+            )
+
+            return str(hypothetical_doc).strip()
+
+        except Exception as e:
+            logger.error(f"HyDE expansion failed ({e.__class__.__name__}).")
+            return ""

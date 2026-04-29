@@ -38,7 +38,9 @@ def entrypoint_search_dataset(
 ) -> None:
     console = get_console()
 
-    console.print("\n[bold blue]--- Dataset Search Processing ---[/]\n")
+    console.print()
+    console.rule("[bold blue]Search dataset[/]", style="blue")
+    console.print()
 
     console.print("[bold cyan][1/3][/] Initializing environment...")
     with console.status(
@@ -46,7 +48,7 @@ def entrypoint_search_dataset(
         spinner="dots",
         spinner_style="bold magenta",
     ):
-        retriever, translator = RetrieverFactory.build(
+        retriever, _ = RetrieverFactory.build(
             bm25_dir_path,
             chroma_dir_path,
             chunks_file_path,
@@ -65,7 +67,6 @@ def entrypoint_search_dataset(
 
     results_stream = retriever.search_dataset_stream(
         dataset=dataset,
-        translator=translator,
         k=k,
     )
 
@@ -118,3 +119,6 @@ def entrypoint_search_dataset(
         f"[bold green][ OK ][/] Results successfully saved to "
         f"[bold white]{save_dir_path}[/]\n"
     )
+
+    console.rule("[bold green]Search dataset completed[/]", style="blue")
+    console.print()

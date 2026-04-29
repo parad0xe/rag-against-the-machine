@@ -1,4 +1,4 @@
-from typing import Generator, Protocol
+from typing import Generator, Protocol, Sequence
 
 
 class LLMAssistantPort(Protocol):
@@ -9,3 +9,13 @@ class LLMAssistantPort(Protocol):
 
 class LLMTranslatorPort(Protocol):
     def translate_to_english(self, text: str) -> str: ...
+
+
+class LLMReRankerPort(Protocol):
+    def rerank(
+        self, query: str, chunks: Sequence[str], top_k: int = 5
+    ) -> list[str]: ...
+
+
+class LLMQueryExpanderPort(Protocol):
+    def expand_query(self, query: str) -> str: ...

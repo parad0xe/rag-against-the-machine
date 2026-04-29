@@ -10,9 +10,7 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.spinner import Spinner
 
-from src.config import settings
 from src.factories.retriever import RetrieverFactory
-from src.infrastructure.llm.assistants.qwen import QwenAssistantLLM
 from src.utils.format import parse_llm_thought
 
 logger = logging.getLogger(__file__)
@@ -34,6 +32,7 @@ def entrypoint_answer(
     console.print()
     console.rule("[bold blue]Answer[/]", style="blue")
     console.print(f"\n[bold]Query:[/] [cyan]{original_query}[/]\n")
+    console.print()
 
     console.print("[bold cyan][1/3][/] Initializing environment...")
     with console.status(
@@ -41,7 +40,7 @@ def entrypoint_answer(
         spinner="dots",
         spinner_style="bold magenta",
     ):
-        retriever, translator = RetrieverFactory.build(
+        retriever, llm = RetrieverFactory.build(
             bm25_dir_path,
             chroma_dir_path,
             chunks_file_path,
@@ -49,7 +48,6 @@ def entrypoint_answer(
             embedding_model_name,
         )
 
-        llm = QwenAssistantLLM(model_name=settings.llm_model)
     console.print("[bold green][ OK ][/] Models and data loaded.\n")
 
     console.print("[bold cyan][2/3][/] Executing search query...")
@@ -60,7 +58,6 @@ def entrypoint_answer(
     ):
         _, chunks = retriever.search(
             original_query=original_query,
-            translator=translator,
             k=k,
         )
     console.print("[bold green][ OK ][/] Search completed.\n")
@@ -134,3 +131,5 @@ def entrypoint_answer(
         f"[bold green][ OK ][/] Answer generated in "
         f"[bold yellow]{total_time:.2f}s[/].\n"
     )
+    console.rule("[bold green]Answer completed[/]", style="blue")
+    console.print()

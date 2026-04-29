@@ -29,6 +29,7 @@ def entrypoint_search(
     console.print()
     console.rule("[bold blue]Search[/]", style="blue")
     console.print(f"\n[bold]Query:[/] [cyan]{original_query}[/]\n")
+    console.print()
 
     console.print("[bold cyan][1/2][/] Initializing environment...")
     with console.status(
@@ -36,7 +37,7 @@ def entrypoint_search(
         spinner="dots",
         spinner_style="bold magenta",
     ):
-        retriever, translator = RetrieverFactory.build(
+        retriever, _ = RetrieverFactory.build(
             bm25_dir_path,
             chroma_dir_path,
             chunks_file_path,
@@ -53,7 +54,6 @@ def entrypoint_search(
     ):
         result, _ = retriever.search(
             original_query=original_query,
-            translator=translator,
             k=k,
         )
     console.print("[bold green][ OK ][/] Search completed.\n")
@@ -92,5 +92,6 @@ def entrypoint_search(
         "[dim]Total sources retrieved: "
         f"{len(result.retrieved_sources)}[/dim]\n"
     )
-    console.rule(style="blue")
+
+    console.rule("[bold green]Search completed[/]", style="blue")
     console.print()

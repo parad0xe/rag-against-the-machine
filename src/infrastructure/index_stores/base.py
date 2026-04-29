@@ -1,7 +1,10 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import Generator
 
 from src.domain.models.base import Document, ManifestFileCache
+
+logger = logging.getLogger(__file__)
 
 
 class BaseIndexStoreQuery(ABC):
@@ -26,6 +29,9 @@ class BaseIndexStoreQuery(ABC):
         self._name = name
         self._enable = enable
         self._weight = weight
+
+        if enable:
+            logger.info(f"Use {self.name} for documents retrieving")
 
     @abstractmethod
     def search(self, query: str, k: int) -> list[str] | None: ...
