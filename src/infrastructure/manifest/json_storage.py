@@ -1,12 +1,11 @@
 from pathlib import Path
 
-from src.application.ports.storage import ManifestStorageInterface
 from src.domain.models.base import Manifest
 from src.infrastructure.manifest.json_loader import ManifestJSONLoader
 from src.utils.file import file_write_json
 
 
-class ManifestJSONStorage(ManifestStorageInterface):
+class ManifestJSONStorage:
     def save(self, file_path: Path, manifest: Manifest) -> None:
         file_write_json(file_path, manifest.model_dump_json(indent=2))
 
@@ -17,7 +16,7 @@ class ManifestJSONStorage(ManifestStorageInterface):
         repositories: list[Path],
         chunk_size: int,
         with_semantic: bool,
-        fingerprint_seed: list | None = None,
+        fingerprint_seed: list[str | int | bool] | None = None,
     ) -> tuple[Manifest, bool]:
         return ManifestJSONLoader().load_with_properties(
             file_path=file_path,

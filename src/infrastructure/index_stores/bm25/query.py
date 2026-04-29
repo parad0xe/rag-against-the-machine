@@ -3,15 +3,21 @@ from pathlib import Path
 
 import bm25s
 
-from src.application.ports.index_store.store import IndexStoreQueryInterface
-
 logger = logging.getLogger(__file__)
 
 
-class BM25IndexStoreQuery(IndexStoreQueryInterface):
+class BM25IndexStoreQuery:
     @property
     def name(self) -> str:
         return "BM25"
+
+    @property
+    def weight(self) -> float:
+        return self._weight
+
+    @property
+    def enable(self) -> bool:
+        return self._enable
 
     def __init__(
         self,
@@ -19,10 +25,12 @@ class BM25IndexStoreQuery(IndexStoreQueryInterface):
         enable: bool = True,
         weight: float = 1.0,
     ) -> None:
-        super().__init__(dir_path, enable, weight)
+        self._dir_path = dir_path
+        self._enable = enable
+        self._weight = weight
         self._retriever: bm25s.BM25 | None = None
 
-    def _perform_search(self, query: str, k: int) -> list[str] | None:
+    def search(self, query: str, k: int) -> list[str] | None:
         if self._retriever is None:
             self._retriever = bm25s.BM25.load(self._dir_path, load_corpus=True)
 

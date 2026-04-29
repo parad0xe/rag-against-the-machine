@@ -57,8 +57,8 @@ def entrypoint_evaluate(
             else:
                 retrieved = result.retrieved_sources[:k]
                 recall = evaluator.calculate_recall(
-                    retrieved=retrieved,
-                    expected=expected_answer.sources,
+                    retrieved_sources=retrieved,
+                    expected_sources=expected_answer.sources,
                 )
             total_recalls[k] += recall
 

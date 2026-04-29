@@ -5,15 +5,15 @@ from typing import Any
 
 from tqdm.rich import tqdm
 
-from src.application.ports.index_store.registry import (
-    IndexStoreRegistryInterface,
+from src.application.ports.index_store import (
+    IndexStoreRegistryPort,
+    IndexStoreSyncPort,
 )
-from src.application.ports.index_store.store import IndexStoreSyncInterface
 from src.application.ports.loader import (
-    DocumentLoaderInterface,
-    FileLoaderInterface,
+    DocumentLoaderPort,
+    FileLoaderPort,
 )
-from src.application.ports.manifest import ManifestManagerInterface
+from src.application.ports.manifest import ManifestManagerPort
 from src.utils.file import ensure_valid_dir_path, iter_file_paths
 
 logger = logging.getLogger(__file__)
@@ -22,19 +22,17 @@ logger = logging.getLogger(__file__)
 class Indexer:
     def __init__(
         self,
-        manifest_manager: ManifestManagerInterface,
+        manifest_manager: ManifestManagerPort,
         extensions: list[str],
-        index_store_registry: IndexStoreRegistryInterface[
-            IndexStoreSyncInterface
-        ],
-        file_loader: FileLoaderInterface,
-        document_loader: DocumentLoaderInterface,
+        index_store_registry: IndexStoreRegistryPort[IndexStoreSyncPort],
+        file_loader: FileLoaderPort,
+        document_loader: DocumentLoaderPort,
     ) -> None:
         self._manifest_manager = manifest_manager
         self._index_store_registry = index_store_registry
         self._extensions: list[str] = extensions
-        self._file_loader: FileLoaderInterface = file_loader
-        self._document_loader: DocumentLoaderInterface = document_loader
+        self._file_loader: FileLoaderPort = file_loader
+        self._document_loader: DocumentLoaderPort = document_loader
         self._viewed_file_paths: set[Path] = set()
         self.founded_documents: int = 0
 
@@ -93,21 +91,6 @@ class Indexer:
                 self._manifest_manager.track(document)
 
                 pbar.set_postfix(ordered_dict=stats)
-
-        for store in self._index_store_registry.stores:
-            num_chunks_to_delete = len(store._delete_chunk_ids)
-            num_chunks_to_add = sum(
-                [len(x.chunk_ids) for x in store._add_documents]
-            )
-            num_documents_to_add = len(store._add_documents)
-            logger.debug(
-                f"[{store.__class__.__name__}] "
-                "documents"
-                f"(to add: {num_documents_to_add}) "
-                "chunks"
-                f"(to add: {num_chunks_to_add} "
-                f"/ to delete: {num_chunks_to_delete})"
-            )
 
     def commit(self) -> None:
         logger.info("Committing changes to stores.")

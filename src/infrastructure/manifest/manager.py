@@ -3,24 +3,35 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from src.application.ports.manifest import ManifestManagerInterface
-from src.application.ports.storage import ManifestStorageInterface
+from src.application.ports.manifest import ManifestStoragePort
 from src.domain.models.base import Document, File, Manifest, ManifestFileCache
 
 logger = logging.getLogger(__file__)
 
 
-class ManifestManager(ManifestManagerInterface):
+class ManifestManager:
+    @property
+    def manifest(self) -> Manifest:
+        return self._manifest
+
+    @property
+    def expired_chunk_ids(self) -> set[str]:
+        return self._expired_chunk_ids
+
+    @property
+    def fingerprint_mismatch(self) -> bool:
+        return self._fingerprint_mismatch
+
     def __init__(
         self,
         file_path: Path,
-        manifest_storage: ManifestStorageInterface,
+        manifest_storage: ManifestStoragePort,
         extensions: tuple[str] | list[str],
         embedding_model_name: str,
         repositories: list[Path],
         chunk_size: int,
         with_semantic: bool,
-        fingerprint_seed: list | None = None,
+        fingerprint_seed: list[str | int | bool] | None = None,
     ) -> None:
         self._file_path: Path = file_path
         self._manifest_storage = manifest_storage
@@ -34,9 +45,9 @@ class ManifestManager(ManifestManagerInterface):
             fingerprint_seed=fingerprint_seed,
         )
 
-        self.fingerprint_mismatch: bool = mismatch
-        self.manifest: Manifest = manifest
-        self.expired_chunk_ids: set[str] = set()
+        self._fingerprint_mismatch: bool = mismatch
+        self._manifest: Manifest = manifest
+        self._expired_chunk_ids: set[str] = set()
 
         self.__sync(extensions)
 

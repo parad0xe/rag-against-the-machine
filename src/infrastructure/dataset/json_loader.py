@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-from src.application.ports.loader import RagDatasetLoaderInterface
 from src.domain.exceptions.schema import (
     SchemaInvalidJSONFormatError,
     SchemaInvalidJSONRootError,
@@ -10,7 +9,7 @@ from src.domain.models.dataset import RagDataset
 from src.utils.file import file_load_content
 
 
-class RagDatasetJSONLoader(RagDatasetLoaderInterface):
+class RagDatasetJSONLoader:
     def load(
         self,
         file_path: Path,

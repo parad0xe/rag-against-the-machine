@@ -6,15 +6,21 @@ from chromadb import Collection
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 
-from src.application.ports.index_store.store import IndexStoreQueryInterface
-
 logger = logging.getLogger(__file__)
 
 
-class ChromaIndexStoreQuery(IndexStoreQueryInterface):
+class ChromaIndexStoreQuery:
     @property
     def name(self) -> str:
         return "Chroma"
+
+    @property
+    def weight(self) -> float:
+        return self._weight
+
+    @property
+    def enable(self) -> bool:
+        return self._enable
 
     def __init__(
         self,
@@ -23,12 +29,17 @@ class ChromaIndexStoreQuery(IndexStoreQueryInterface):
         enable: bool = True,
         weight: float = 1.0,
     ) -> None:
-        super().__init__(dir_path, enable, weight)
+        # 2. Le code qui était dans l'interface est maintenant ici !
+        self._dir_path = dir_path
+        self._enable = enable
+        self._weight = weight
+
+        # Initialisation spécifique à Chroma
         self._embedding_model_name: str = embedding_model_name
         self._collection: Collection | None = None
         self._model: SentenceTransformer | None = None
 
-    def _perform_search(self, query: str, k: int) -> list[str] | None:
+    def search(self, query: str, k: int) -> list[str] | None:
         if self._collection is None:
             client = chromadb.PersistentClient(
                 path=str(self._dir_path),

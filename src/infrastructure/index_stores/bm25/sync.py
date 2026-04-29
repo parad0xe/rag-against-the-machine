@@ -1,37 +1,54 @@
 import logging
 import shutil
+from pathlib import Path
 
 import bm25s
 
-from src.application.ports.index_store.store import IndexStoreSyncInterface
 from src.domain.exceptions.base import RagError
 from src.domain.models.base import Document, ManifestFileCache
 
 logger = logging.getLogger(__file__)
 
 
-class BM25IndexStoreSync(IndexStoreSyncInterface):
+class BM25IndexStoreSync:
     @property
     def name(self) -> str:
         return "BM25"
 
-    def _requires_deletion(
+    @property
+    def enable(self) -> bool:
+        return self._enable
+
+    @property
+    def addition_enable(self) -> bool:
+        return self._addition_enable
+
+    def __init__(
+        self,
+        dir_path: Path,
+        enable: bool = True,
+        addition_enable: bool = True,
+    ) -> None:
+        self._dir_path = dir_path
+        self._enable = enable
+        self._addition_enable = addition_enable
+        self._add_documents: list[Document] = []
+        self._delete_chunk_ids: set[str] = set()
+
+    def delete(self, expired_chunk_ids: set[str]) -> None:
+        self._delete_chunk_ids.update(expired_chunk_ids)
+
+    def track(
         self,
         document: Document,
-        cached_file: ManifestFileCache | None,
-        document_has_changed: bool,
-    ) -> bool:
-        return bool(cached_file and self.name in cached_file.stores)
+        cached_file: ManifestFileCache | None = None,
+    ) -> None:
+        if cached_file and self.name in cached_file.stores:
+            self._delete_chunk_ids.update(cached_file.chunk_ids)
+        if self._addition_enable:
+            self._add_documents.append(document)
 
-    def _requires_addition(
-        self,
-        document: Document,
-        cached_file: ManifestFileCache | None,
-        document_has_changed: bool,
-    ) -> bool:
-        return True
-
-    def _perform_commit(self, require_reset: bool) -> None:
+    def commit(self, require_reset: bool = False) -> None:
         if not self._add_documents:
             raise RagError("No document to index for BM25")
 
@@ -62,4 +79,5 @@ class BM25IndexStoreSync(IndexStoreSyncInterface):
             f"'{self._dir_path}'."
         )
 
-        self._clear_state()
+        self._add_documents.clear()
+        self._delete_chunk_ids.clear()

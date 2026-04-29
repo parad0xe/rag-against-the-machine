@@ -7,6 +7,7 @@ from pathlib import Path
 from pydantic import Field, PositiveInt, validate_call
 from rich import get_console
 
+from src.application.ports.index_store import IndexStoreSyncPort
 from src.application.services.indexer import Indexer
 from src.config import settings
 from src.domain.exceptions.document import NoDocumentError
@@ -15,7 +16,7 @@ from src.infrastructure.file.local_loader import LocalFileLoader
 from src.infrastructure.index_stores.bm25.sync import BM25IndexStoreSync
 from src.infrastructure.index_stores.chroma.sync import ChromaIndexStoreSync
 from src.infrastructure.index_stores.raw.sync import RawIndexStoreSync
-from src.infrastructure.index_stores.registry import IndexStoreSyncRegistry
+from src.infrastructure.index_stores.registry import IndexStoreRegistry
 from src.infrastructure.manifest.json_storage import (
     ManifestJSONStorage,
 )
@@ -63,19 +64,21 @@ def entrypoint_index(
             fingerprint_seed=[embedding_model_name, chunk_size],
         )
 
+        sync_stores: list[IndexStoreSyncPort] = [
+            BM25IndexStoreSync(bm25_dir_path),
+            ChromaIndexStoreSync(
+                chroma_dir_path,
+                embedding_model_name,
+                batch_size=settings.index_batch_size,
+                addition_enable=with_semantic,
+            ),
+            RawIndexStoreSync(chunks_file_path),
+        ]
+
         indexer = Indexer(
             manifest_manager=manifest_manager,
             extensions=parsed_extensions,
-            index_store_registry=IndexStoreSyncRegistry(
-                BM25IndexStoreSync(bm25_dir_path),
-                ChromaIndexStoreSync(
-                    chroma_dir_path,
-                    embedding_model_name,
-                    batch_size=settings.index_batch_size,
-                    addition_enable=with_semantic,
-                ),
-                RawIndexStoreSync(chunks_file_path),
-            ),
+            index_store_registry=IndexStoreRegistry(*sync_stores),
             file_loader=LocalFileLoader(),
             document_loader=DocumentLoader(),
         )

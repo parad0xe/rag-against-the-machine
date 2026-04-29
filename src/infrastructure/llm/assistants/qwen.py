@@ -1,7 +1,7 @@
 import logging
 import textwrap
 from threading import Thread
-from typing import Generator
+from typing import Any, Generator, cast
 
 from transformers import (
     AutoModelForCausalLM,
@@ -9,14 +9,14 @@ from transformers import (
     TextIteratorStreamer,
 )
 
-from src.application.ports.llm import LLMAssistantInterface
+from src.config import settings
 from src.domain.exceptions.base import RagError
 
 logger = logging.getLogger(__file__)
 
 
-class QwenAssistantLLM(LLMAssistantInterface):
-    def __init__(self, model_name: str = "Qwen/Qwen3-0.6B") -> None:
+class QwenAssistantLLM:
+    def __init__(self, model_name: str = settings.llm_model) -> None:
         logger.info(f"Loading LLM {model_name}...")
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -101,7 +101,9 @@ class QwenAssistantLLM(LLMAssistantInterface):
             pad_token_id=self.tokenizer.eos_token_id,
         )
 
-        thread = Thread(target=self.model.generate, kwargs=generation_kwargs)
+        thread = Thread(
+            target=cast(Any, self.model).generate, kwargs=generation_kwargs
+        )
         thread.start()
 
         for new_text in streamer:

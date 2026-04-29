@@ -1,11 +1,11 @@
 from typing import Generator
 
-from src.application.ports.index_store.registry import (
-    IndexStoreRegistryInterface,
+from src.application.ports.index_store import (
+    IndexStoreQueryPort,
+    IndexStoreRegistryPort,
 )
-from src.application.ports.index_store.store import IndexStoreQueryInterface
-from src.application.ports.llm import LLMTranslatorInterface
-from src.application.ports.loader import ChunksLoaderInterface
+from src.application.ports.llm import LLMTranslatorPort
+from src.application.ports.loader import ChunksLoaderPort
 from src.domain.models.base import Chunk
 from src.domain.models.dataset import MinimalSource, RagDataset
 from src.domain.models.inference import MinimalSearchResults
@@ -15,10 +15,8 @@ from src.utils.common import md5
 class Retriever:
     def __init__(
         self,
-        index_store_registry: IndexStoreRegistryInterface[
-            IndexStoreQueryInterface
-        ],
-        chunks_loader: ChunksLoaderInterface,
+        index_store_registry: IndexStoreRegistryPort[IndexStoreQueryPort],
+        chunks_loader: ChunksLoaderPort,
     ) -> None:
         self._index_store_registry = index_store_registry
         self._chunks_loader = chunks_loader
@@ -26,7 +24,7 @@ class Retriever:
     def retrieve_chunks(
         self,
         original_query: str,
-        translator: LLMTranslatorInterface,
+        translator: LLMTranslatorPort,
         k: int = 10,
     ) -> list[Chunk]:
         translated_query = translator.translate_to_english(original_query)
@@ -58,7 +56,7 @@ class Retriever:
     def search(
         self,
         original_query: str,
-        translator: LLMTranslatorInterface,
+        translator: LLMTranslatorPort,
         k: int = 10,
         question_id: str | None = None,
     ) -> tuple[MinimalSearchResults, list[Chunk]]:
@@ -88,7 +86,7 @@ class Retriever:
     def search_dataset_stream(
         self,
         dataset: RagDataset,
-        translator: LLMTranslatorInterface,
+        translator: LLMTranslatorPort,
         k: int = 10,
     ) -> Generator[tuple[MinimalSearchResults, list[Chunk]], None, None]:
         for question in dataset.rag_questions:

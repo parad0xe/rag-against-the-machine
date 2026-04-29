@@ -1,19 +1,18 @@
-from src.application.ports.index_store.registry import (
-    IndexStoreRegistryInterface,
-)
-from src.application.ports.index_store.store import (
-    IndexStoreQueryInterface,
-    IndexStoreSyncInterface,
-)
+from typing import Generic, Sequence, TypeVar
+
+T = TypeVar("T")
 
 
-class IndexStoreQueryRegistry(
-    IndexStoreRegistryInterface[IndexStoreQueryInterface]
-):
-    pass
+class IndexStoreRegistry(Generic[T]):
+    def __init__(self, *stores: T) -> None:
+        self._stores = list(stores)
 
+    @property
+    def stores(self) -> Sequence[T]:
+        return self._stores
 
-class IndexStoreSyncRegistry(
-    IndexStoreRegistryInterface[IndexStoreSyncInterface]
-):
-    pass
+    @property
+    def active_stores(self) -> Sequence[T]:
+        return [
+            store for store in self._stores if getattr(store, "enable", False)
+        ]

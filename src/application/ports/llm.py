@@ -1,14 +1,11 @@
-from abc import ABC, abstractmethod
-from typing import Generator
+from typing import Generator, Protocol
 
 
-class LLMAssistantInterface(ABC):
-    @abstractmethod
+class LLMAssistantPort(Protocol):
     def generate_answer(
         self, query: str, context: str
     ) -> Generator[str, None, None]: ...
 
 
-class LLMTranslatorInterface(ABC):
-    @abstractmethod
+class LLMTranslatorPort(Protocol):
     def translate_to_english(self, text: str) -> str: ...

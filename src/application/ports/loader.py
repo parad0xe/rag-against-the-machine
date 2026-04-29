@@ -1,5 +1,6 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from pathlib import Path
+from typing import Protocol
 
 from src.domain.models.base import (
     Chunk,
@@ -11,8 +12,7 @@ from src.domain.models.base import (
 from src.domain.models.dataset import RagDataset
 
 
-class FileLoaderInterface(ABC):
-    @abstractmethod
+class FileLoaderPort(Protocol):
     def load(
         self,
         file_path: Path,
@@ -20,8 +20,7 @@ class FileLoaderInterface(ABC):
     ) -> File | None: ...
 
 
-class RagDatasetLoaderInterface(ABC):
-    @abstractmethod
+class RagDatasetLoaderPort(Protocol):
     def load(
         self,
         file_path: Path,
@@ -29,7 +28,7 @@ class RagDatasetLoaderInterface(ABC):
     ) -> RagDataset | None: ...
 
 
-class DocumentLoaderInterface(ABC):
+class DocumentLoaderPort(Protocol):
     @abstractmethod
     def load(
         self,
@@ -39,20 +38,17 @@ class DocumentLoaderInterface(ABC):
     ) -> Document: ...
 
 
-class ChunksLoaderInterface(ABC):
-    @abstractmethod
+class ChunksLoaderPort(Protocol):
     def load(self, chunk_ids: list[str]) -> dict[str, Chunk]: ...
 
 
-class ManifestLoaderInterface(ABC):
-    @abstractmethod
+class ManifestLoaderPort(Protocol):
     def load(
         self,
         file_path: Path,
         ignore_errors: bool = False,
     ) -> Manifest | None: ...
 
-    @abstractmethod
     def load_with_properties(
         self,
         file_path: Path,
@@ -60,5 +56,5 @@ class ManifestLoaderInterface(ABC):
         embedding_model_name: str,
         chunk_size: int,
         with_semantic: bool,
-        fingerprint_seed: list | None = None,
+        fingerprint_seed: list[str | int | bool] | None = None,
     ) -> tuple[Manifest, bool]: ...

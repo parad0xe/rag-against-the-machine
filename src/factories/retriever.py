@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from src.application.ports.index_store import IndexStoreQueryPort
 from src.application.services.retriever import Retriever
 from src.domain.exceptions.storage import StorageFileNotFoundError
 from src.infrastructure.chunks.json_loader import ChunksJSONLoader
@@ -7,7 +8,9 @@ from src.infrastructure.index_stores.bm25.query import BM25IndexStoreQuery
 from src.infrastructure.index_stores.chroma.query import (
     ChromaIndexStoreQuery,
 )
-from src.infrastructure.index_stores.registry import IndexStoreQueryRegistry
+from src.infrastructure.index_stores.registry import (
+    IndexStoreRegistry,
+)
 from src.infrastructure.llm.translators.text_generation import (
     TextGenerationTranslatorLLM,
 )
@@ -28,19 +31,21 @@ class RetrieverFactory:
         if not manifest:
             raise StorageFileNotFoundError(manifest_file_path)
 
-        translator = TextGenerationTranslatorLLM()
+        query_stores: list[IndexStoreQueryPort] = [
+            BM25IndexStoreQuery(bm25_dir_path, weight=0.65),
+            ChromaIndexStoreQuery(
+                chroma_dir_path,
+                embedding_model_name,
+                enable=manifest.with_semantic,
+                weight=0.35,
+            ),
+        ]
 
         retriever = Retriever(
-            index_store_registry=IndexStoreQueryRegistry(
-                BM25IndexStoreQuery(bm25_dir_path, weight=0.65),
-                ChromaIndexStoreQuery(
-                    chroma_dir_path,
-                    embedding_model_name,
-                    enable=manifest.with_semantic,
-                    weight=0.35,
-                ),
-            ),
+            index_store_registry=IndexStoreRegistry(*query_stores),
             chunks_loader=ChunksJSONLoader(chunks_file_path),
         )
+
+        translator = TextGenerationTranslatorLLM()
 
         return retriever, translator

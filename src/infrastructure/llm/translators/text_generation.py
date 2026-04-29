@@ -2,13 +2,12 @@ import torch
 from langdetect import DetectorFactory, LangDetectException, detect
 from transformers import pipeline
 
-from src.application.ports.llm import LLMTranslatorInterface
 from src.config import settings
 
 DetectorFactory.seed = 0
 
 
-class TextGenerationTranslatorLLM(LLMTranslatorInterface):
+class TextGenerationTranslatorLLM:
     def __init__(self, model: str = settings.translator_model) -> None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.translator = pipeline(
@@ -31,6 +30,6 @@ class TextGenerationTranslatorLLM(LLMTranslatorInterface):
 
     def _is_english(self, text: str) -> bool:
         try:
-            return detect(text) == "en"
+            return bool(detect(text) == "en")
         except LangDetectException:
             return True

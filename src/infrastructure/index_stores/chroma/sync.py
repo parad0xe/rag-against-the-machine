@@ -1,20 +1,29 @@
 import logging
 from pathlib import Path
+from typing import Generator
 
 import chromadb
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 from tqdm.rich import tqdm
 
-from src.application.ports.index_store.store import IndexStoreSyncInterface
+from src.domain.models.base import Document, ManifestFileCache
 
 logger = logging.getLogger(__file__)
 
 
-class ChromaIndexStoreSync(IndexStoreSyncInterface):
+class ChromaIndexStoreSync:
     @property
     def name(self) -> str:
         return "Chroma"
+
+    @property
+    def enable(self) -> bool:
+        return self._enable
+
+    @property
+    def addition_enable(self) -> bool:
+        return self._addition_enable
 
     def __init__(
         self,
@@ -24,11 +33,34 @@ class ChromaIndexStoreSync(IndexStoreSyncInterface):
         enable: bool = True,
         addition_enable: bool = True,
     ) -> None:
-        super().__init__(dir_path, enable, addition_enable)
-        self._embedding_model_name: str = embedding_model_name
-        self._batch_size: int = batch_size
+        self._dir_path = dir_path
+        self._embedding_model_name = embedding_model_name
+        self._batch_size = batch_size
+        self._enable = enable
+        self._addition_enable = addition_enable
+        self._add_documents: list[Document] = []
+        self._delete_chunk_ids: set[str] = set()
 
-    def _perform_commit(self, require_reset: bool) -> None:
+    def delete(self, expired_chunk_ids: set[str]) -> None:
+        self._delete_chunk_ids.update(expired_chunk_ids)
+
+    def track(
+        self,
+        document: Document,
+        cached_file: ManifestFileCache | None = None,
+    ) -> None:
+        doc_changed = (
+            not cached_file or cached_file.file_hash != document.file.hash
+        )
+        in_store = cached_file and self.name in cached_file.stores
+
+        if doc_changed or not in_store:
+            if in_store and cached_file:
+                self._delete_chunk_ids.update(cached_file.chunk_ids)
+            if self._addition_enable and doc_changed:
+                self._add_documents.append(document)
+
+    def commit(self, require_reset: bool = False) -> None:
         logger.info(
             f"[{self.__class__.__name__}] Synchronizing index: "
             f"{len(self._add_documents)} additions, "
@@ -82,4 +114,21 @@ class ChromaIndexStoreSync(IndexStoreSyncInterface):
 
         logger.info(f"[{self.__class__.__name__}] Synchronization complete.")
 
-        self._clear_state()
+        self._add_documents.clear()
+        self._delete_chunk_ids.clear()
+
+    def _batches(
+        self, batch_size: int
+    ) -> Generator[tuple[list[str], list[str]], None, None]:
+        batch_chunks = []
+        batch_ids = []
+        for doc in self._add_documents:
+            for i, chunk in enumerate(doc.chunks):
+                batch_chunks.append(chunk)
+                batch_ids.append(doc.chunk_ids[i])
+                if len(batch_chunks) >= batch_size:
+                    yield batch_chunks, batch_ids
+                    batch_chunks = []
+                    batch_ids = []
+        if batch_chunks:
+            yield batch_chunks, batch_ids

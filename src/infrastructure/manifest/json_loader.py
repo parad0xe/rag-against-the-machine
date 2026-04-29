@@ -3,7 +3,6 @@ import logging
 from pathlib import Path
 from typing import Iterable
 
-from src.application.ports.loader import ManifestLoaderInterface
 from src.domain.exceptions.schema import (
     SchemaInvalidJSONFormatError,
     SchemaInvalidJSONRootError,
@@ -15,7 +14,7 @@ from src.utils.file import file_load_content
 logger = logging.getLogger(__file__)
 
 
-class ManifestJSONLoader(ManifestLoaderInterface):
+class ManifestJSONLoader:
     def load(
         self,
         file_path: Path,
