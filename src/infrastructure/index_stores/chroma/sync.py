@@ -5,7 +5,6 @@ from typing import Generator
 import chromadb
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
-from tqdm.rich import tqdm
 
 from src.infrastructure.index_stores.base import BaseIndexStoreSync
 
@@ -25,7 +24,9 @@ class ChromaIndexStoreSync(BaseIndexStoreSync):
         self._embedding_model_name = embedding_model_name
         self._batch_size = batch_size
 
-    def commit(self, require_reset: bool = False) -> None:
+    def commit(
+        self, require_reset: bool = False
+    ) -> Generator[tuple[int, int, str], None, None]:
         logger.info(
             f"[{self.__class__.__name__}] Synchronizing index: "
             f"{len(self._add_documents)} additions, "
@@ -54,30 +55,33 @@ class ChromaIndexStoreSync(BaseIndexStoreSync):
             )
 
         if self._add_documents:
-            logger.info(
-                f"[{self.__class__.__name__}] Loading embedding model: "
-                f"'{self._embedding_model_name}'"
+            total_chunks = sum(len(d.chunks) for d in self._add_documents)
+            batches = list(self._batches(self._batch_size))
+            total_batches = len(batches)
+
+            yield (
+                0,
+                total_batches,
+                f"Loading model {self._embedding_model_name}...",
             )
             model = SentenceTransformer(self._embedding_model_name)
 
-            total_chunks = sum(len(d.chunks) for d in self._add_documents)
             logger.info(
                 f"[{self.__class__.__name__}] Encoding {total_chunks} chunks "
                 f"in batches of {self._batch_size}."
             )
-            with tqdm(
-                total=total_chunks, desc="Store chunk embeddings"
-            ) as pbar:
-                for batch_chunks, batch_ids in self._batches(self._batch_size):
-                    embeddings = model.encode(
-                        batch_chunks, convert_to_numpy=True
-                    )
-                    collection.upsert(
-                        embeddings=embeddings.tolist(), ids=batch_ids
-                    )
-                    pbar.update(len(batch_chunks))
 
-        logger.info(f"[{self.__class__.__name__}] Synchronization complete.")
+            yield 0, total_batches, f"Preparing {total_chunks} chunks..."
+
+            for i, (batch_chunks, batch_ids) in enumerate(batches, 1):
+                yield i, total_batches, f"Upserting batch {i}/{total_batches}"
+
+                embeddings = model.encode(batch_chunks, convert_to_numpy=True)
+                collection.upsert(
+                    embeddings=embeddings.tolist(), ids=batch_ids
+                )
+        else:
+            yield 1, 1, "No chunks to add"
 
         self._add_documents.clear()
         self._delete_chunk_ids.clear()

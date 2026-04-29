@@ -8,9 +8,12 @@ from transformers import (
     AutoTokenizer,
     TextIteratorStreamer,
 )
+from transformers.utils import logging as transformers_logging
 
 from src.config import settings
 from src.domain.exceptions.base import RagError
+
+transformers_logging.disable_progress_bar()
 
 logger = logging.getLogger(__file__)
 

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Generator
 
 from src.domain.models.base import Document, ManifestFileCache
 
@@ -39,6 +40,18 @@ class BaseIndexStoreSync(ABC):
     def addition_enable(self) -> bool:
         return self._addition_enable
 
+    @property
+    def added_documents_count(self) -> int:
+        return len(self._add_documents)
+
+    @property
+    def added_chunks_count(self) -> int:
+        return sum(len(d.chunks) for d in self._add_documents)
+
+    @property
+    def deleted_chunks_count(self) -> int:
+        return len(self._delete_chunk_ids)
+
     def __init__(
         self,
         name: str,
@@ -73,4 +86,6 @@ class BaseIndexStoreSync(ABC):
                 document.stores.add(self.name)
 
     @abstractmethod
-    def commit(self, require_reset: bool = False) -> None: ...
+    def commit(
+        self, require_reset: bool = False
+    ) -> Generator[tuple[int, int, str], None, None]: ...

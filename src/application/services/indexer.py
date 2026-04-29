@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
-
-from tqdm.rich import tqdm
+from typing import Generator, TypedDict
 
 from src.application.ports.index_store import (
     IndexStoreRegistryPort,
@@ -16,7 +15,17 @@ from src.utils.file import ensure_valid_dir_path, iter_file_paths
 logger = logging.getLogger(__file__)
 
 
+class StoreCommitSummary(TypedDict):
+    added_docs: int
+    added_chunks: int
+    deleted_chunks: int
+
+
 class Indexer:
+    @property
+    def commit_summary(self) -> dict[str, StoreCommitSummary]:
+        return self._commit_summary
+
     def __init__(
         self,
         manifest_manager: ManifestManagerPort,
@@ -31,12 +40,15 @@ class Indexer:
         self._file_loader = file_loader
         self._document_loader: DocumentLoaderPort = document_loader
         self._viewed_file_paths: set[Path] = set()
+        self._commit_summary: dict[str, StoreCommitSummary] = {}
         self.founded_documents: int = 0
 
         for store in index_store_registry.stores:
             store.delete(manifest_manager.expired_chunk_ids)
 
-    def index(self, repository: Path) -> None:
+    def index(
+        self, repository: Path
+    ) -> Generator[tuple[int, Path], None, None]:
         logger.info(f"Starting indexing for repository: {repository}")
         ensure_valid_dir_path(repository)
 
@@ -50,9 +62,12 @@ class Indexer:
             logger.warning(f"Invalid repository path: {repository}. Skipped")
             return
 
-        for file_path in tqdm(
-            list(iterator), desc="Indexing documents", unit="files"
-        ):
+        files = list(iterator)
+        total_files = len(files)
+
+        for file_path in files:
+            yield total_files, file_path
+
             if file_path in self._viewed_file_paths:
                 continue
             self._viewed_file_paths.add(file_path)
@@ -75,12 +90,22 @@ class Indexer:
 
             self._manifest_manager.track(document)
 
-    def commit(self) -> None:
+    def commit(self) -> Generator[tuple[str, int, int, str], None, None]:
         logger.info("Committing changes to stores.")
 
         for store in self._index_store_registry.stores:
-            store.commit(
-                require_reset=self._manifest_manager.fingerprint_mismatch
-            )
+            self._commit_summary[store.name] = {
+                "added_docs": store.added_documents_count,
+                "added_chunks": store.added_chunks_count,
+                "deleted_chunks": store.deleted_chunks_count,
+            }
 
+        for store in self._index_store_registry.stores:
+            for current, total, desc in store.commit(
+                require_reset=self._manifest_manager.fingerprint_mismatch
+            ):
+                yield store.name, current, total, desc
+
+        yield "Manifest", 0, 1, "Saving state..."
         self._manifest_manager.commit()
+        yield "Manifest", 1, 1, "State saved"

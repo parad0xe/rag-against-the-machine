@@ -1,4 +1,4 @@
-from typing import Protocol, Sequence, TypeVar
+from typing import Generator, Protocol, Sequence, TypeVar
 
 from src.domain.models.base import Document, ManifestFileCache
 
@@ -25,6 +25,15 @@ class IndexStoreSyncPort(Protocol):
     @property
     def addition_enable(self) -> bool: ...
 
+    @property
+    def added_documents_count(self) -> int: ...
+
+    @property
+    def added_chunks_count(self) -> int: ...
+
+    @property
+    def deleted_chunks_count(self) -> int: ...
+
     def track(
         self,
         document: Document,
@@ -33,7 +42,9 @@ class IndexStoreSyncPort(Protocol):
 
     def delete(self, expired_chunk_ids: set[str]) -> None: ...
 
-    def commit(self, require_reset: bool = False) -> None: ...
+    def commit(
+        self, require_reset: bool = False
+    ) -> Generator[tuple[int, int, str], None, None]: ...
 
 
 class IndexStoreRegistryPort(Protocol[T_co]):

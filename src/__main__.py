@@ -165,6 +165,9 @@ class App:
 def main() -> None:
     logger.info("Application starting...")
     os.environ.setdefault("PAGER", "cat")
+    os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+    os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
     try:
         try:

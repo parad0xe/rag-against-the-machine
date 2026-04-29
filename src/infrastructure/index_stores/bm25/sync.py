@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Generator
 
 import bm25s
 
@@ -29,15 +30,14 @@ class BM25IndexStoreSync(BaseIndexStoreSync):
             self._add_documents.append(document)
             document.stores.add(self.name)
 
-    def commit(self, require_reset: bool = False) -> None:
+    def commit(
+        self, require_reset: bool = False
+    ) -> Generator[tuple[int, int, str], None, None]:
         if not self._add_documents:
             raise RagError("No document to index for BM25")
 
         total_docs = len(self._add_documents)
-        logger.info(
-            f"[{self.__class__.__name__}] Building index for "
-            f"{total_docs} documents..."
-        )
+        yield 0, 1, f"Building index for {total_docs} docs..."
 
         chunks: list[str] = []
         chunk_ids: list[dict[str, str]] = []
@@ -50,15 +50,12 @@ class BM25IndexStoreSync(BaseIndexStoreSync):
             safe_rmtree(self._dir_path)
             self._dir_path.mkdir(parents=True, exist_ok=True)
 
-        chunk_tokens = bm25s.tokenize(chunks)
+        chunk_tokens = bm25s.tokenize(chunks, show_progress=False)
         retriever = bm25s.BM25(corpus=chunk_ids)
-        retriever.index(chunk_tokens)
-        retriever.save(self._dir_path)
+        retriever.index(chunk_tokens, show_progress=False)
+        retriever.save(self._dir_path, show_progress=False)
 
-        logger.info(
-            f"[{self.__class__.__name__}] Successfully saved index to "
-            f"'{self._dir_path}'."
-        )
+        yield 1, 1, "Index saved"
 
         self._add_documents.clear()
         self._delete_chunk_ids.clear()

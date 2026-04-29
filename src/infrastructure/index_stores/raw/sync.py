@@ -1,6 +1,7 @@
 import json
 import logging
 from pathlib import Path
+from typing import Generator
 
 from src.domain.models.base import Chunk
 from src.infrastructure.index_stores.base import BaseIndexStoreSync
@@ -19,7 +20,11 @@ class RawIndexStoreSync(BaseIndexStoreSync):
         self._file_path = file_path
         self._dir_path = file_path.parent
 
-    def commit(self, require_reset: bool = False) -> None:
+    def commit(
+        self, require_reset: bool = False
+    ) -> Generator[tuple[int, int, str], None, None]:
+        yield 0, 1, "Saving chunks data..."
+
         data: dict[str, Chunk] = {}
         if self._file_path.exists() and not require_reset:
             content = file_load_content(self._file_path)
@@ -40,6 +45,8 @@ class RawIndexStoreSync(BaseIndexStoreSync):
 
         self._dir_path.mkdir(parents=True, exist_ok=True)
         file_write_json(self._file_path, data)
+
+        yield 1, 1, "Chunks saved"
 
         self._add_documents.clear()
         self._delete_chunk_ids.clear()
