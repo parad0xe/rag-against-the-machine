@@ -34,9 +34,10 @@ class Settings(BaseSettings):
     search_output: Path = output_dir / "search_results.json"
     answer_output: Path = output_dir / "answer_results.json"
 
+    llm_model: str = "Qwen/Qwen3-0.6B"
+    cross_encoder_model: str = "BAAI/bge-reranker-base"
     translator_model: str = "Helsinki-NLP/opus-mt-mul-en"
     embedding_model: str = "all-MiniLM-L6-v2"
-    llm_model: str = "Qwen/Qwen3-0.6B"
 
     default_k: int = 10
     max_chunk_size: int = 2000

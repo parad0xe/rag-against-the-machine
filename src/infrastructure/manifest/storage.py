@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from typing import Literal, overload
 
+from src.application.ports.manifest import ManifestStoragePort
 from src.domain.exceptions.schema import (
     SchemaInvalidJSONFormatError,
 )
@@ -12,7 +13,7 @@ from src.utils.file import file_load_content, file_write_json
 logger = logging.getLogger(__file__)
 
 
-class ManifestJSONStorage:
+class ManifestJSONStorage(ManifestStoragePort):
     def save(self, file_path: Path, manifest: Manifest) -> None:
         file_write_json(file_path, manifest.model_dump_json(indent=2))
 

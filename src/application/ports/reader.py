@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Literal, Protocol, TypeVar, overload
 
-
 T_co = TypeVar("T_co", covariant=True)
 
 

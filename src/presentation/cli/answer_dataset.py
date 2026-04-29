@@ -46,9 +46,9 @@ def entrypoint_answer_dataset(
     console.rule("[bold blue]Answer dataset[/]", style="blue")
     console.print()
 
-    console.print("[bold cyan][1/3][/] Initializing environment...")
+    console.print("[bold cyan][1/3][/] Initializing environment")
     with console.status(
-        "Loading models and parsing data...",
+        "Loading models and parsing data",
         spinner="dots",
         spinner_style="bold magenta",
     ):
@@ -66,7 +66,7 @@ def entrypoint_answer_dataset(
 
     console.print(
         f"[bold cyan][2/3][/] Processing {len(dataset.rag_questions)} "
-        "questions..."
+        "questions"
     )
 
     results_stream = retriever.search_dataset_stream(
@@ -89,7 +89,7 @@ def entrypoint_answer_dataset(
         console=console,
     ) as progress:
         task_id = progress.add_task(
-            "Processing dataset...", total=len(dataset.rag_questions)
+            "Processing dataset", total=len(dataset.rag_questions)
         )
 
         for result, chunks in results_stream:

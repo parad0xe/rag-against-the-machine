@@ -4,14 +4,17 @@ import logging
 from pathlib import Path
 from typing import Iterable
 
-from src.application.ports.manifest import ManifestStoragePort
+from src.application.ports.manifest import (
+    ManifestManagerPort,
+    ManifestStoragePort,
+)
 from src.domain.models.base import Document, File, Manifest, ManifestFileCache
 from src.utils.common import compute_fingerprint
 
 logger = logging.getLogger(__file__)
 
 
-class ManifestManager:
+class ManifestManager(ManifestManagerPort):
     @property
     def manifest(self) -> Manifest:
         return self._manifest

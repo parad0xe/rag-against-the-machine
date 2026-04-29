@@ -1,3 +1,4 @@
+from src.application.ports.loader import DocumentLoaderPort
 from src.domain.models.base import Chunk, Document, File, ManifestFileCache
 from src.infrastructure.document.splitter import (
     LanguageTextSplitter,
@@ -5,7 +6,7 @@ from src.infrastructure.document.splitter import (
 from src.utils.common import md5
 
 
-class DocumentLoader:
+class DocumentLoader(DocumentLoaderPort):
     def load(
         self,
         file: File,

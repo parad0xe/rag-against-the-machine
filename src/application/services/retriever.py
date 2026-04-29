@@ -40,6 +40,8 @@ class RetrieverService:
         original_query: str,
         k: int = 10,
     ) -> list[Chunk]:
+        logger.debug(f"Original query received: '{original_query}'")
+
         # --- Query Translator
         translated_query = self._translator.translate_to_english(
             original_query
@@ -49,20 +51,21 @@ class RetrieverService:
         # --------
 
         # --- With HyDE (Query expension)
-        logger.info("Generating hypothetical document (HyDE)...")
-        hypothetical_doc = self._expander.expand_query(translated_query)
-
-        if hypothetical_doc:
-            search_query = f"{translated_query}\n{hypothetical_doc}"
-            logger.debug(f"Expanded Query:\n{search_query}")
-        else:
-            search_query = translated_query
+        logger.info("Generating query expansion/keywords")
+        keywords = self._expander.expand_query(translated_query)
+        search_query = (
+            f"{translated_query}\n{keywords}" if keywords else translated_query
+        )
+        logger.debug(f"Keywords extracted: '{keywords}'")
+        logger.debug(f"Final search query:\n{search_query}")
         # --- Without HyDE
         # search_query = translated_query
         # ---------
 
         pool_size = max(k * 10, 50)
         search_results: list[tuple[list[str], float]] = []
+
+        logger.debug(f"Querying active stores with pool_size={pool_size}")
 
         with ThreadPoolExecutor() as executor:
             futures = {
@@ -75,47 +78,50 @@ class RetrieverService:
                 res = future.result()
                 if res:
                     search_results.append((res, store.weight))
+                    logger.debug(
+                        f"Store '{store.name}' returned {len(res)} results."
+                    )
+                else:
+                    logger.debug(f"Store '{store.name}' returned 0 results.")
 
+        logger.info("Performing RFF")
         top_results = self.__compute_rrf(search_results)[:pool_size]
         top_ids = [cid for cid, _ in top_results]
+        logger.debug(f"Computed RRF. Kept top {len(top_ids)} unique chunks.")
 
-        chunks_data = self._chunks_loader.load(top_ids)
+        chunks_map = self._chunks_loader.load(top_ids)
 
         # --- With Reranker
-        pool_chunks: list[Chunk] = []
-        for chunk_id, _ in top_results:
-            data: Chunk | None = chunks_data.get(chunk_id, None)
-            if data is not None:
-                pool_chunks.append(data)
-
-        content_to_chunk: dict[str, Chunk] = {}
-        chunk_texts: list[str] = []
-        for chunk in pool_chunks:
-            raw_content = chunk.get("text", "")
-            file_path = chunk.get("file_path", "Unknown")
-
-            if raw_content and raw_content not in content_to_chunk:
-                content_to_chunk[raw_content] = chunk
-                formatted_text_for_reranker = (
-                    f"File: {file_path}\nCode:\n{raw_content}"
-                )
-                chunk_texts.append(formatted_text_for_reranker)
-
-        best_texts = self._reranker.rerank(
-            query=translated_query, chunks=chunk_texts, top_k=k
+        pool_chunks = [chunks_map[cid] for cid in top_ids if cid in chunks_map]
+        logger.debug(
+            f"Successfully loaded {len(pool_chunks)} chunks from storage."
         )
-        final_chunks = []
-        for formatted_text in best_texts:
-            original_content = formatted_text.split("Code:\n", 1)[1]
-            final_chunks.append(content_to_chunk[original_content])
-        return final_chunks
+
+        if not pool_chunks:
+            logger.debug("No chunks found. Returning empty list.")
+            return []
+
+        formatted_texts = [
+            f"File: {c['file_path']}\nCode:\n{c['text']}" for c in pool_chunks
+        ]
+
+        text_to_chunk = dict(zip(formatted_texts, pool_chunks))
+
+        logger.info("Performing re-ranking")
+        logger.debug(
+            f"Sending {len(formatted_texts)} chunks to the reranker "
+            f"(top_k={k})"
+        )
+        best_texts = self._reranker.rerank(
+            query=translated_query,
+            chunks=formatted_texts,
+            top_k=k,
+        )
+        logger.debug(f"Reranker returned {len(best_texts)} top chunks.")
+
+        return [text_to_chunk[t] for t in best_texts if t in text_to_chunk]
         # --- Without Reranker
-        # pool_chunks: list[Chunk] = []
-        # for chunk_id, _ in top_results[:k]:
-        #    data: Chunk | None = chunks_data.get(chunk_id, None)
-        #    if data is not None:
-        #        pool_chunks.append(data)
-        # return pool_chunks
+        # return [chunks_map[cid] for cid in top_ids[:k] if cid in chunks_map]
         # ---------
 
     def search(
@@ -124,16 +130,21 @@ class RetrieverService:
         k: int = 10,
         question_id: str | None = None,
     ) -> tuple[MinimalSearchResults, list[Chunk]]:
+        logger.debug(f"Starting search process (k={k})")
         chunks = self.retrieve_chunks(original_query=original_query, k=k)
 
-        sources: list[MinimalSource] = []
-        for chunk in chunks:
-            source = MinimalSource(
-                file_path=chunk.get("file_path", "Unknown"),
-                first_character_index=chunk.get("first_character_index", -1),
-                last_character_index=chunk.get("last_character_index", -1),
+        sources: list[MinimalSource] = [
+            MinimalSource.model_validate(
+                {
+                    "file_path": c.get("file_path", "Unknown"),
+                    "first_character_index": c.get(
+                        "first_character_index", -1
+                    ),
+                    "last_character_index": c.get("last_character_index", -1),
+                }
             )
-            sources.append(source)
+            for c in chunks
+        ]
 
         question_id = (
             md5(original_query) if question_id is None else question_id
@@ -150,13 +161,15 @@ class RetrieverService:
         dataset: RagDataset,
         k: int = 10,
     ) -> Generator[tuple[MinimalSearchResults, list[Chunk]], None, None]:
+        logger.debug(
+            f"Streaming search for {len(dataset.rag_questions)} questions."
+        )
         for question in dataset.rag_questions:
-            minimal_search_results, chunks = self.search(
+            yield self.search(
                 original_query=question.question,
                 k=k,
                 question_id=question.question_id,
             )
-            yield minimal_search_results, chunks
 
     def __compute_rrf(
         self,
@@ -170,8 +183,4 @@ class RetrieverService:
                 score = weight * (1.0 / (k + rank + 1))
                 scores[doc_id] = scores.get(doc_id, 0.0) + score
 
-        sorted_results = sorted(
-            scores.items(), key=lambda item: item[1], reverse=True
-        )
-
-        return sorted_results
+        return sorted(scores.items(), key=lambda x: x[1], reverse=True)

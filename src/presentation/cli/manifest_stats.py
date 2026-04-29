@@ -10,7 +10,7 @@ from src.infrastructure.manifest.storage import ManifestJSONStorage
 
 
 @validate_call()
-def entrypoint_manifest_stats(manifest_file_path: Path) -> None:
+def entrypoint_manifest_stats(manifest_file_path: Path, all: bool) -> None:
     console = get_console()
 
     console.print()
@@ -25,7 +25,7 @@ def entrypoint_manifest_stats(manifest_file_path: Path) -> None:
     )
 
     info = [
-        f"[bold]Model:[/] {stats['embedding_model']}",
+        f"[bold]Embedding model:[/] {stats['embedding_model']}",
         f"[bold]Semantic:[/] {semantic_color}",
         f"[bold]Chunk size:[/] {stats['chunk_size']}",
         f"[bold]Fingerprint:[/] [dim]{stats['fingerprint']}[/]",
@@ -46,22 +46,23 @@ def entrypoint_manifest_stats(manifest_file_path: Path) -> None:
     console.print(config_panel)
     console.print()
 
-    ext_table = Table(
-        title="[bold dim]By extension[/]",
-        header_style="bold magenta",
-        border_style="cyan",
-        box=box.ROUNDED,
-        expand=False,
-    )
-    ext_table.add_column("Extension", style="bold cyan")
-    ext_table.add_column("Files", justify="right", style="green")
-    ext_table.add_column("Chunks", justify="right", style="yellow")
+    if all:
+        ext_table = Table(
+            title="[bold dim]By extension[/]",
+            header_style="bold magenta",
+            border_style="cyan",
+            box=box.ROUNDED,
+            expand=False,
+        )
+        ext_table.add_column("Extension", style="bold cyan")
+        ext_table.add_column("Files", justify="right", style="green")
+        ext_table.add_column("Chunks", justify="right", style="yellow")
 
-    for ext, s in stats["extensions"].items():
-        ext_table.add_row(ext, str(s["file_count"]), str(s["chunk_count"]))
+        for ext, s in stats["extensions"].items():
+            ext_table.add_row(ext, str(s["file_count"]), str(s["chunk_count"]))
 
-    console.print(ext_table)
-    console.print()
+        console.print(ext_table)
+        console.print()
 
     console.rule("[bold green]Manifest statistics completed[/]", style="blue")
     console.print()

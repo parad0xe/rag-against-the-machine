@@ -59,9 +59,9 @@ def entrypoint_index(
 
     start_time = time.perf_counter()
 
-    console.print("[bold cyan][1/3][/] Initializing manifest and stores...")
+    console.print("[bold cyan][1/3][/] Initializing manifest and stores")
     with console.status(
-        "Loading configurations...",
+        "Loading configurations",
         spinner="dots",
         spinner_style="bold magenta",
     ):
@@ -98,7 +98,7 @@ def entrypoint_index(
 
     console.print(
         f"[bold cyan][2/3][/] Indexing {len(repositories)} repositories "
-        f"(extensions: {', '.join(parsed_extensions)})..."
+        f"(extensions: {', '.join(parsed_extensions)})"
     )
 
     with Progress(
@@ -112,9 +112,7 @@ def entrypoint_index(
         console=console,
     ) as progress:
         for repository in repositories:
-            task_id = progress.add_task(
-                f"Scanning {repository.name}...", total=1
-            )
+            task_id = progress.add_task(f"Scanning {repository.name}", total=1)
 
             for total_files, current_path in indexer.index(repository):
                 progress.update(task_id, total=total_files)
@@ -130,14 +128,17 @@ def entrypoint_index(
                 task_id,
                 description=f"[bold green]{repository.name} indexed[/]",
             )
-        progress.update(task_id, description="[bold green]Files indexed[/]")
+        progress.update(task_id, description="[bold green]Files scanned[/]")
 
-    if not indexer.founded_documents:
+    if not indexer.indexed_document_count:
         raise NoDocumentError()
 
-    console.print("[bold green][ OK ][/] Repositories scanned and indexed.\n")
+    console.print(
+        "[bold green][ OK ][/] Repositories scanned "
+        f"({indexer.indexed_document_count} indexed documents)\n"
+    )
 
-    console.print("[bold cyan][3/3][/] Committing changes to stores...")
+    console.print("[bold cyan][3/3][/] Committing changes to stores")
 
     with Progress(
         SpinnerColumn(spinner_name="dots", style="bold magenta"),

@@ -34,9 +34,9 @@ def entrypoint_answer(
     console.print(f"\n[bold]Query:[/] [cyan]{original_query}[/]\n")
     console.print()
 
-    console.print("[bold cyan][1/3][/] Initializing environment...")
+    console.print("[bold cyan][1/3][/] Initializing environment")
     with console.status(
-        "Loading models and parsing data...",
+        "Loading models and parsing data",
         spinner="dots",
         spinner_style="bold magenta",
     ):
@@ -50,9 +50,9 @@ def entrypoint_answer(
 
     console.print("[bold green][ OK ][/] Models and data loaded.\n")
 
-    console.print("[bold cyan][2/3][/] Executing search query...")
+    console.print("[bold cyan][2/3][/] Executing search query")
     with console.status(
-        "Searching for relevant documents...",
+        "Searching for relevant documents",
         spinner="dots",
         spinner_style="bold magenta",
     ):
@@ -76,7 +76,7 @@ def entrypoint_answer(
         )
         context.append(context_source)
 
-    console.print("[bold cyan][3/3][/] Generating answer...")
+    console.print("[bold cyan][3/3][/] Generating answer")
     answer_stream = llm.generate_answer(
         query=original_query,
         context="\n".join(context),

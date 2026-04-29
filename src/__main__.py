@@ -162,10 +162,11 @@ class App:
     def manifest_stats(
         self,
         path: str = str(settings.manifest_path),
+        all: bool = False,
         verbose: int = 0,
     ) -> None:
         self._prepare(verbose)
-        entrypoint_manifest_stats(manifest_file_path=Path(path))
+        entrypoint_manifest_stats(manifest_file_path=Path(path), all=all)
 
     def _prepare(self, verbose: int) -> None:
         v = TypeAdapter(NonNegativeInt).validate_python(verbose)
@@ -173,7 +174,7 @@ class App:
 
 
 def main() -> None:
-    logger.info("Application starting...")
+    logger.info("Application starting")
     os.environ.setdefault("PAGER", "cat")
     os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
     os.environ["TRANSFORMERS_VERBOSITY"] = "error"

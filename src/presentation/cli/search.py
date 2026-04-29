@@ -31,9 +31,9 @@ def entrypoint_search(
     console.print(f"\n[bold]Query:[/] [cyan]{original_query}[/]\n")
     console.print()
 
-    console.print("[bold cyan][1/2][/] Initializing environment...")
+    console.print("[bold cyan][1/2][/] Initializing environment")
     with console.status(
-        "Loading models and parsing data...",
+        "Loading models and parsing data",
         spinner="dots",
         spinner_style="bold magenta",
     ):
@@ -46,9 +46,9 @@ def entrypoint_search(
         )
     console.print("[bold green][ OK ][/] Models and data loaded.\n")
 
-    console.print("[bold cyan][2/2][/] Executing search query...")
+    console.print("[bold cyan][2/2][/] Executing search query")
     with console.status(
-        "Searching for relevant documents...",
+        "Searching for relevant documents",
         spinner="dots",
         spinner_style="bold magenta",
     ):

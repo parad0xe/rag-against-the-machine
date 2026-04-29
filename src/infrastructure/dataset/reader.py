@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from typing import Literal, overload
 
+from src.application.ports.reader import ReaderPort
 from src.domain.exceptions.schema import (
     SchemaInvalidJSONFormatError,
     SchemaInvalidJSONRootError,
@@ -10,7 +11,7 @@ from src.domain.models.dataset import RagDataset
 from src.utils.file import file_load_content
 
 
-class RagDatasetJSONReader:
+class RagDatasetJSONReader(ReaderPort):
     @overload
     def read(
         self, file_path: Path, ignore_errors: Literal[False] = False

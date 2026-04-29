@@ -1,12 +1,13 @@
 from pathlib import Path
 from typing import Literal, overload
 
+from src.application.ports.reader import ReaderPort
 from src.domain.models.base import File
 from src.utils.common import md5
 from src.utils.file import file_load_content, get_extension
 
 
-class LocalFileReader:
+class LocalFileReader(ReaderPort):
     @overload
     def read(
         self, file_path: Path, ignore_errors: Literal[False] = False

@@ -23,7 +23,7 @@ class RawIndexStoreSync(BaseIndexStoreSync):
     def commit(
         self, require_reset: bool = False
     ) -> Generator[tuple[int, int, str], None, None]:
-        yield 0, 1, "Saving chunks data..."
+        yield 0, 1, "Saving chunks data"
 
         data: dict[str, Chunk] = {}
         if self._file_path.exists() and not require_reset:

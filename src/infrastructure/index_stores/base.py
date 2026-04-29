@@ -2,12 +2,16 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Generator
 
+from src.application.ports.index_store import (
+    IndexStoreQueryPort,
+    IndexStoreSyncPort,
+)
 from src.domain.models.base import Document, ManifestFileCache
 
 logger = logging.getLogger(__file__)
 
 
-class BaseIndexStoreQuery(ABC):
+class BaseIndexStoreQuery(IndexStoreQueryPort, ABC):
     @property
     def name(self) -> str:
         return self._name
@@ -31,13 +35,13 @@ class BaseIndexStoreQuery(ABC):
         self._weight = weight
 
         if enable:
-            logger.info(f"Use {self.name} for documents retrieving")
+            logger.info(f"Use {self._name} for document retrieval.")
 
     @abstractmethod
     def search(self, query: str, k: int) -> list[str] | None: ...
 
 
-class BaseIndexStoreSync(ABC):
+class BaseIndexStoreSync(IndexStoreSyncPort, ABC):
     @property
     def name(self) -> str:
         return self._name

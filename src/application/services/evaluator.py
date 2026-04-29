@@ -1,16 +1,22 @@
+import logging
 import os
 
-from src.config import settings
 from src.domain.models.dataset import MinimalSource
+
+logger = logging.getLogger(__file__)
 
 
 class EvaluatorService:
+    def __init__(self, overlap_threshold: float = 0.05) -> None:
+        self._overlap_threshold = overlap_threshold
+
     def calculate_recall(
         self,
         retrieved_sources: list[MinimalSource],
         expected_sources: list[MinimalSource],
     ) -> float:
         if not expected_sources:
+            logger.debug("No expected sources provided. Recall is 0.0.")
             return 0.0
 
         found_count = sum(
@@ -57,7 +63,11 @@ class EvaluatorService:
 
             if union_length > 0:
                 ratio = intersection_length / union_length
-                if ratio >= settings.overlap_threshold:
+                if ratio >= self._overlap_threshold:
+                    logger.debug(
+                        f"Match found: {expected_path} "
+                        f"(overlap ratio={ratio:.2f})."
+                    )
                     return True
 
         return False

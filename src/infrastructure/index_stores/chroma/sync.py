@@ -56,11 +56,11 @@ class ChromaIndexStoreSync(BaseIndexStoreSync):
             yield (
                 0,
                 total_batches,
-                f"Loading model {self._embedding_model_name}...",
+                f"Loading model {self._embedding_model_name}",
             )
             model = SentenceTransformer(self._embedding_model_name)
 
-            yield 0, total_batches, f"Preparing {total_chunks} chunks..."
+            yield 0, total_batches, f"Preparing {total_chunks} chunks"
 
             for i, (batch_chunks, batch_ids) in enumerate(batches, 1):
                 yield i, total_batches, f"Upserting batch {i}/{total_batches}"

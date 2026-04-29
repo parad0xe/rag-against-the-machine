@@ -37,7 +37,7 @@ class BM25IndexStoreSync(BaseIndexStoreSync):
             raise RagError("No document to index for BM25")
 
         total_docs = len(self._add_documents)
-        yield 0, 1, f"Building index for {total_docs} docs..."
+        yield 0, 1, f"Building index for {total_docs} docs"
 
         chunks: list[str] = []
         chunk_ids: list[dict[str, str]] = []

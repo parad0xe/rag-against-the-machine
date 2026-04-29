@@ -42,9 +42,9 @@ def entrypoint_search_dataset(
     console.rule("[bold blue]Search dataset[/]", style="blue")
     console.print()
 
-    console.print("[bold cyan][1/3][/] Initializing environment...")
+    console.print("[bold cyan][1/3][/] Initializing environment")
     with console.status(
-        "Loading models and parsing data...",
+        "Loading models and parsing data",
         spinner="dots",
         spinner_style="bold magenta",
     ):
@@ -62,7 +62,7 @@ def entrypoint_search_dataset(
 
     console.print(
         f"[bold cyan][2/3][/] Processing {len(dataset.rag_questions)} "
-        "questions..."
+        "questions"
     )
 
     results_stream = retriever.search_dataset_stream(
@@ -84,7 +84,7 @@ def entrypoint_search_dataset(
         console=console,
     ) as progress:
         task_id = progress.add_task(
-            "Searching dataset...", total=len(dataset.rag_questions)
+            "Searching dataset", total=len(dataset.rag_questions)
         )
 
         for result, _ in results_stream:
@@ -107,9 +107,9 @@ def entrypoint_search_dataset(
         f"[bold yellow]{elapsed_time:.2f}s[/].\n"
     )
 
-    console.print("[bold cyan][3/3][/] Saving results to disk...")
+    console.print("[bold cyan][3/3][/] Saving results to disk")
     with console.status(
-        "Writing JSON file...",
+        "Writing JSON file",
         spinner="dots",
         spinner_style="bold magenta",
     ):
