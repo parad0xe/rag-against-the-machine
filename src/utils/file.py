@@ -74,8 +74,10 @@ def file_load_content(
         with open(file_path, encoding="utf-8", errors="strict") as f:
             return f.read()
     except (OSError, UnicodeDecodeError) as e:
-        logger.warning(f"failed to load file {file_path}: {e}")
         if ignore_errors:
+            logger.warning(
+                f"failed to load file {'/'.join(file_path.parts[-2:])}: {e}"
+            )
             return None
 
         if isinstance(e, FileNotFoundError):

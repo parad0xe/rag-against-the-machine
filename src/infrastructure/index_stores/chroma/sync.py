@@ -27,12 +27,6 @@ class ChromaIndexStoreSync(BaseIndexStoreSync):
     def commit(
         self, require_reset: bool = False
     ) -> Generator[tuple[int, int, str], None, None]:
-        logger.info(
-            f"[{self.__class__.__name__}] Synchronizing index: "
-            f"{len(self._add_documents)} additions, "
-            f"{len(self._delete_chunk_ids)} deletions."
-        )
-
         client = chromadb.PersistentClient(
             path=str(self._dir_path),
             settings=Settings(anonymized_telemetry=False),
@@ -65,11 +59,6 @@ class ChromaIndexStoreSync(BaseIndexStoreSync):
                 f"Loading model {self._embedding_model_name}...",
             )
             model = SentenceTransformer(self._embedding_model_name)
-
-            logger.info(
-                f"[{self.__class__.__name__}] Encoding {total_chunks} chunks "
-                f"in batches of {self._batch_size}."
-            )
 
             yield 0, total_batches, f"Preparing {total_chunks} chunks..."
 
