@@ -4,7 +4,7 @@ from src.config import settings
 from src.domain.models.dataset import MinimalSource
 
 
-class Evaluator:
+class EvaluatorService:
     def calculate_recall(
         self,
         retrieved_sources: list[MinimalSource],

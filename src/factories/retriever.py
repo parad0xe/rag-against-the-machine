@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from src.application.ports.index_store import IndexStoreQueryPort
-from src.application.services.retriever import Retriever
+from src.application.services.retriever import RetrieverService
 from src.infrastructure.chunks.loader import ChunksJSONFileLoader
 from src.infrastructure.index_stores.bm25.query import BM25IndexStoreQuery
 from src.infrastructure.index_stores.chroma.query import (
@@ -24,7 +24,7 @@ class RetrieverFactory:
         chunks_file_path: Path,
         manifest_file_path: Path,
         embedding_model_name: str,
-    ) -> tuple[Retriever, TextGenerationTranslatorLLM]:
+    ) -> tuple[RetrieverService, TextGenerationTranslatorLLM]:
 
         manifest = ManifestJSONStorage().read(manifest_file_path)
 
@@ -38,7 +38,7 @@ class RetrieverFactory:
             ),
         ]
 
-        retriever = Retriever(
+        retriever = RetrieverService(
             index_store_registry=IndexStoreRegistry(*query_stores),
             chunks_loader=ChunksJSONFileLoader(chunks_file_path),
         )

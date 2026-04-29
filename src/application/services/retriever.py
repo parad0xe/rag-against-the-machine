@@ -12,7 +12,7 @@ from src.domain.models.inference import MinimalSearchResults
 from src.utils.common import md5
 
 
-class Retriever:
+class RetrieverService:
     def __init__(
         self,
         index_store_registry: IndexStoreRegistryPort[IndexStoreQueryPort],

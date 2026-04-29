@@ -21,7 +21,7 @@ class StoreCommitSummary(TypedDict):
     deleted_chunks: int
 
 
-class Indexer:
+class IndexerService:
     @property
     def commit_summary(self) -> dict[str, StoreCommitSummary]:
         return self._commit_summary

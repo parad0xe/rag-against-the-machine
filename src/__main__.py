@@ -22,6 +22,7 @@ from src.presentation.cli.answer import entrypoint_answer
 from src.presentation.cli.answer_dataset import entrypoint_answer_dataset
 from src.presentation.cli.evaluate import entrypoint_evaluate
 from src.presentation.cli.index import entrypoint_index
+from src.presentation.cli.manifest_stats import entrypoint_manifest_stats
 from src.presentation.cli.search import entrypoint_search
 from src.presentation.cli.search_dataset import entrypoint_search_dataset
 
@@ -156,6 +157,14 @@ class App:
             predictions_file_path=Path(predictions_file_path),
             ks=ks,
         )
+
+    def manifest_stats(
+        self,
+        path: str = str(settings.manifest_path),
+        verbose: int = 0,
+    ) -> None:
+        self._prepare(verbose)
+        entrypoint_manifest_stats(manifest_file_path=Path(path))
 
     def _prepare(self, verbose: int) -> None:
         v = TypeAdapter(NonNegativeInt).validate_python(verbose)

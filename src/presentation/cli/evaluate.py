@@ -6,7 +6,7 @@ from pydantic import validate_call
 from rich import get_console
 from rich.table import Table
 
-from src.application.services.evaluator import Evaluator
+from src.application.services.evaluator import EvaluatorService
 from src.domain.exceptions.storage import StorageFileNotFoundError
 from src.domain.models.dataset import AnsweredQuestion
 from src.domain.models.inference import (
@@ -32,7 +32,7 @@ def entrypoint_evaluate(
     with open(predictions_file_path, "r", encoding="utf-8") as f:
         student_data = StudentSearchResults.model_validate(json.load(f))
 
-    evaluator = Evaluator()
+    evaluator = EvaluatorService()
 
     valid_ks = sorted([k for k in ks if k <= student_data.k])
     if not valid_ks:

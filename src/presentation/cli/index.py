@@ -20,7 +20,7 @@ from rich.progress import (
 from rich.table import Table
 
 from src.application.ports.index_store import IndexStoreSyncPort
-from src.application.services.indexer import Indexer
+from src.application.services.indexer import IndexerService
 from src.config import settings
 from src.domain.exceptions.document import NoDocumentError
 from src.infrastructure.document.loader import DocumentLoader
@@ -85,7 +85,7 @@ def entrypoint_index(
             RawIndexStoreSync(chunks_file_path),
         ]
 
-        indexer = Indexer(
+        indexer = IndexerService(
             manifest_manager=manifest_manager,
             extensions=parsed_extensions,
             index_store_registry=IndexStoreRegistry(*sync_stores),

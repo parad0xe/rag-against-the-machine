@@ -34,7 +34,7 @@ def iter_file_paths(
         )
 
         for path in path_generator:
-            if path.is_file():
+            if path.is_file() and path.suffix.strip():
                 yield Path(path)
 
     return None
