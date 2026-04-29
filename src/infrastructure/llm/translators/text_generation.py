@@ -1,3 +1,5 @@
+import logging
+
 import torch
 from langdetect import DetectorFactory, LangDetectException, detect
 from transformers import pipeline
@@ -5,6 +7,8 @@ from transformers import pipeline
 from src.config import settings
 
 DetectorFactory.seed = 0
+
+logger = logging.getLogger(__file__)
 
 
 class TextGenerationTranslatorLLM:
@@ -23,10 +27,19 @@ class TextGenerationTranslatorLLM:
 
         result = self.translator(
             text,
-            max_length=1024,
+            max_length=512,
+            truncation=True,
         )
 
-        return str(result[0]["translation_text"])
+        translation_dict = result[0]
+        translation = translation_dict.get(
+            "translation_text"
+        ) or translation_dict.get("generated_text")
+
+        if not translation:
+            logger.error("Failed to translate text. Skipped")
+            return text
+        return translation
 
     def _is_english(self, text: str) -> bool:
         try:

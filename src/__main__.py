@@ -12,6 +12,7 @@ from pydantic import (
     TypeAdapter,
     ValidationError,
 )
+from rich.console import Console
 from tqdm import TqdmExperimentalWarning
 
 from src.config import settings
@@ -178,24 +179,21 @@ def main() -> None:
     os.environ["TRANSFORMERS_VERBOSITY"] = "error"
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+    error_console = Console(stderr=True)
+
     try:
         try:
             fire.Fire(App())
         except ValidationError as e:
             raise SchemaValidationError(e) from e
     except RagError as e:
-        print(
-            f"[{e.__class__.__name__}] {e}",
-            file=sys.stderr,
-        )
+        error_console.print(f"\n[bold red] {e.__class__.__name__}:[/] {e}")
         sys.exit(1)
     except FireExit:
         sys.exit(2)
     except Exception as e:
-        print(
-            f"[{e.__class__.__name__}] An unexpected error occurred: {e}",
-            file=sys.stderr,
-        )
+        error_console.print(f"\n[bold red] {e.__class__.__name__}:[/] {e}")
+        error_console.print_exception(show_locals=False)
         sys.exit(3)
 
 

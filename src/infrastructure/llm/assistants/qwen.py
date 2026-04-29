@@ -81,9 +81,12 @@ class QwenAssistantLLM:
             enable_thinking=True,
         )
 
-        inputs = self.tokenizer(text, return_tensors="pt").to(
-            self.model.device
-        )
+        inputs = self.tokenizer(
+            text,
+            return_tensors="pt",
+            max_length=8192,
+            truncation=True,
+        ).to(self.model.device)
 
         streamer = TextIteratorStreamer(
             self.tokenizer,
@@ -94,7 +97,7 @@ class QwenAssistantLLM:
         generation_kwargs = dict(
             **inputs,
             streamer=streamer,
-            max_new_tokens=1024,
+            max_new_tokens=2048,
             temperature=0.2,
             top_p=0.95,
             top_k=20,
