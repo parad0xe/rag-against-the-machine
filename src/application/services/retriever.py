@@ -6,7 +6,7 @@ from src.application.ports.index_store import (
     IndexStoreQueryPort,
     IndexStoreRegistryPort,
 )
-from src.application.ports.llm import (
+from src.application.ports.llm.llm import (
     LLMQueryExpanderPort,
     LLMReRankerPort,
     LLMTranslatorPort,

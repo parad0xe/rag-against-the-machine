@@ -2,11 +2,11 @@ import logging
 import textwrap
 from typing import Generator
 
-from src.application.ports.llm import (
+from src.application.ports.llm.engine import (
     ChatMessage,
-    LLMAssistantPort,
     TextGenerationEnginePort,
 )
+from src.application.ports.llm.llm import LLMAssistantPort
 
 logger = logging.getLogger(__file__)
 

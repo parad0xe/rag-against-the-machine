@@ -1,14 +1,15 @@
 import logging
 from typing import Sequence
 
-from src.application.ports.llm import LLMReRankerPort, ReRankerEnginePort
+from src.application.ports.llm.engine import CrossEncoderEnginePort
+from src.application.ports.llm.llm import LLMReRankerPort
 
 logger = logging.getLogger(__file__)
 
 
 class RerankerService(LLMReRankerPort):
-    def __init__(self, reranker_engine: ReRankerEnginePort) -> None:
-        self._reranker_engine = reranker_engine
+    def __init__(self, cross_encoder_engine: CrossEncoderEnginePort) -> None:
+        self._cross_encoder_engine = cross_encoder_engine
 
     def rerank(
         self, query: str, chunks: Sequence[str], top_k: int = 5
@@ -17,7 +18,7 @@ class RerankerService(LLMReRankerPort):
             return []
 
         try:
-            scores = self._reranker_engine.predict_scores(query, chunks)
+            scores = self._cross_encoder_engine.predict_scores(query, chunks)
         except Exception as e:
             logger.error(
                 f"Re-ranking failed ({e.__class__.__name__}). "

@@ -1,11 +1,11 @@
 import logging
 import textwrap
 
-from src.application.ports.llm import (
+from src.application.ports.llm.engine import (
     ChatMessage,
-    LLMQueryExpanderPort,
     TextGenerationEnginePort,
 )
+from src.application.ports.llm.llm import LLMQueryExpanderPort
 
 logger = logging.getLogger(__file__)
 

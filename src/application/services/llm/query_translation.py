@@ -2,10 +2,8 @@ import logging
 
 from langdetect import DetectorFactory, LangDetectException, detect
 
-from src.application.ports.llm import (
-    LLMTranslatorPort,
-    TranslationEnginePort,
-)
+from src.application.ports.llm.engine import TranslationEnginePort
+from src.application.ports.llm.llm import LLMTranslatorPort
 
 DetectorFactory.seed = 0
 logger = logging.getLogger(__file__)

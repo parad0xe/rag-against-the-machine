@@ -7,7 +7,7 @@ from src.utils.common import md5
 from src.utils.file import file_load_content, get_extension
 
 
-class LocalFileReader(ReaderPort):
+class LocalFileReader(ReaderPort[File]):
     @overload
     def read(
         self, file_path: Path, ignore_errors: Literal[False] = False

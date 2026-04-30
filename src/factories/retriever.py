@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from src.application.ports.index_store import IndexStoreQueryPort
-from src.application.ports.llm import LLMAssistantPort
+from src.application.ports.llm.llm import LLMAssistantPort
 from src.application.services.llm.assistant import AssistantService
 from src.application.services.llm.query_expander import QueryExpanderService
 from src.application.services.llm.query_translation import (
@@ -18,14 +18,14 @@ from src.infrastructure.index_stores.chroma.query import (
 from src.infrastructure.index_stores.registry import (
     IndexStoreRegistry,
 )
+from src.infrastructure.llm.engines.cross_encoder import (
+    CrossEncoderEngine,
+)
 from src.infrastructure.llm.engines.huggingface_causal import (
     HuggingFaceCausalEngine,
 )
 from src.infrastructure.llm.engines.huggingface_translation import (
     HuggingFaceTranslationEngine,
-)
-from src.infrastructure.llm.engines.reranker import (
-    ReRankerEngine,
 )
 from src.infrastructure.manifest.storage import ManifestJSONStorage
 
@@ -44,14 +44,14 @@ class RetrieverFactory:
 
         causal_engine = HuggingFaceCausalEngine(model_name=settings.llm_model)
         translation_engine = HuggingFaceTranslationEngine()
-        reranker_engine = ReRankerEngine()
+        cross_encoder_engine = CrossEncoderEngine()
 
         assistant = AssistantService(llm_engine=causal_engine)
         expander = QueryExpanderService(llm_engine=causal_engine)
         translator = QueryTranslatorService(
             translation_engine=translation_engine
         )
-        reranker = RerankerService(reranker_engine=reranker_engine)
+        reranker = RerankerService(cross_encoder_engine=cross_encoder_engine)
 
         query_stores: list[IndexStoreQueryPort] = [
             BM25IndexStoreQuery(bm25_dir_path, weight=0.6),

@@ -5,11 +5,11 @@ import torch
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from transformers.utils import logging as transformers_logging
 
-from src.application.ports.llm import TranslationEnginePort
+from src.application.ports.llm.engine import TranslationEnginePort
 from src.config import settings
 from src.domain.exceptions.base import RagError
 
-transformers_logging.disable_progress_bar()
+cast(Any, transformers_logging).disable_progress_bar()
 
 logger = logging.getLogger(__file__)
 

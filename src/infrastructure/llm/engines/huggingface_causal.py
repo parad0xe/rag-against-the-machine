@@ -10,11 +10,14 @@ from transformers import (
 )
 from transformers.utils import logging as transformers_logging
 
-from src.application.ports.llm import ChatMessage, TextGenerationEnginePort
+from src.application.ports.llm.engine import (
+    ChatMessage,
+    TextGenerationEnginePort,
+)
 from src.config import settings
 from src.domain.exceptions.base import RagError
 
-transformers_logging.disable_progress_bar()
+cast(Any, transformers_logging).disable_progress_bar()
 
 logger = logging.getLogger(__file__)
 
@@ -32,12 +35,15 @@ class HuggingFaceCausalEngine(TextGenerationEnginePort):
                 device_map="auto",
                 attn_implementation="sdpa",
             )
-            self.model.eval()
+            cast(Any, self.model).eval()
         except MemoryError as e:
             raise RagError("Failed to load LLM into memory") from e
 
     def generate(
-        self, messages: list[ChatMessage], stream: bool = False, **kwargs
+        self,
+        messages: list[ChatMessage],
+        stream: bool = False,
+        **kwargs: Any,
     ) -> str | Generator[str, None, None]:
         text = self.tokenizer.apply_chat_template(
             cast(Any, messages),
@@ -58,7 +64,9 @@ class HuggingFaceCausalEngine(TextGenerationEnginePort):
         return self._generate_sync(inputs, **kwargs)
 
     def _generate_stream(
-        self, inputs: Any, **kwargs
+        self,
+        inputs: Any,
+        **kwargs: Any,
     ) -> Generator[str, None, None]:
         streamer = TextIteratorStreamer(
             self.tokenizer,
@@ -88,7 +96,7 @@ class HuggingFaceCausalEngine(TextGenerationEnginePort):
         for new_text in streamer:
             yield str(new_text)
 
-    def _generate_sync(self, inputs: Any, **kwargs) -> str:
+    def _generate_sync(self, inputs: Any, **kwargs: Any) -> str:
         generation_kwargs = dict(
             **inputs,
             pad_token_id=self.tokenizer.eos_token_id,

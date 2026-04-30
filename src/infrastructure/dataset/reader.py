@@ -11,7 +11,7 @@ from src.domain.models.dataset import RagDataset
 from src.utils.file import file_load_content
 
 
-class RagDatasetJSONReader(ReaderPort):
+class RagDatasetJSONReader(ReaderPort[RagDataset]):
     @overload
     def read(
         self, file_path: Path, ignore_errors: Literal[False] = False

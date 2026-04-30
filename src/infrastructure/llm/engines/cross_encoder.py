@@ -5,18 +5,18 @@ import torch
 from sentence_transformers import CrossEncoder
 from transformers.utils import logging as transformers_logging
 
-from src.application.ports.llm import ReRankerEnginePort
+from src.application.ports.llm.engine import CrossEncoderEnginePort
 from src.config import settings
 
-transformers_logging.disable_progress_bar()
+cast(Any, transformers_logging).disable_progress_bar()
 
 logger = logging.getLogger(__file__)
 
 
-class ReRankerEngine(ReRankerEnginePort):
+class CrossEncoderEngine(CrossEncoderEnginePort):
     def __init__(self, model_name: str = settings.cross_encoder_model) -> None:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        logger.info(f"Loading reranker engine {model_name}")
+        logger.info(f"Loading CrossEncoder model {model_name}")
 
         model_kwargs = (
             {"torch_dtype": cast(Any, torch).float16}
