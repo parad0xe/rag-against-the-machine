@@ -50,7 +50,7 @@ class RetrieverService:
         # translated_query = original_query
         # --------
 
-        # --- With HyDE (Query expension)
+        # --- With Query expansion
         logger.info("Generating query expansion/keywords")
         keywords = self._expander.expand_query(translated_query)
         search_query = (
@@ -58,7 +58,7 @@ class RetrieverService:
         )
         logger.debug(f"Keywords extracted: '{keywords}'")
         logger.debug(f"Final search query:\n{search_query}")
-        # --- Without HyDE
+        # --- Without Query expansion
         # search_query = translated_query
         # ---------
 

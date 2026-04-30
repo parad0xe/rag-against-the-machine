@@ -69,5 +69,5 @@ class QueryExpanderService(LLMQueryExpanderPort):
             return str(result).strip()
 
         except Exception as e:
-            logger.error(f"HyDE expansion failed ({e.__class__.__name__}).")
+            logger.error(f"Query expansion failed ({e.__class__.__name__}).")
             return ""
