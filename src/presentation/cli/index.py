@@ -46,7 +46,7 @@ def entrypoint_index(
     extensions: str,
     embedding_model_name: str,
     with_semantic: bool,
-    chunk_size: PositiveInt = Field(2000, le=2000),
+    chunk_size: PositiveInt = Field(2000, gt=200, le=2000),
 ) -> None:
     console = get_console()
 

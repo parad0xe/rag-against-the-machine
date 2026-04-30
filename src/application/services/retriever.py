@@ -26,20 +26,22 @@ class RetrieverService:
         index_store_registry: IndexStoreRegistryPort[IndexStoreQueryPort],
         chunks_loader: ChunksLoaderPort,
         translator: LLMTranslatorPort,
-        reranker: LLMReRankerPort,
-        expander: LLMQueryExpanderPort,
+        reranker: LLMReRankerPort | None,
+        expander: LLMQueryExpanderPort | None,
+        extended: bool,
     ) -> None:
         self._index_store_registry = index_store_registry
         self._chunks_loader = chunks_loader
         self._translator = translator
         self._reranker = reranker
         self._expander = expander
+        self._extended = extended
 
     def retrieve_chunks(
         self,
         original_query: str,
         k: int = 10,
-    ) -> list[Chunk]:
+    ) -> tuple[list[Chunk], str]:
         logger.debug(f"Original query received: '{original_query}'")
 
         # --- Query Translator
@@ -51,15 +53,19 @@ class RetrieverService:
         # --------
 
         # --- With Query expansion
-        logger.info("Generating query expansion/keywords")
-        keywords = self._expander.expand_query(translated_query)
-        search_query = (
-            f"{translated_query}\n{keywords}" if keywords else translated_query
-        )
-        logger.debug(f"Keywords extracted: '{keywords}'")
-        logger.debug(f"Final search query:\n{search_query}")
+        if self._extended and self._expander:
+            logger.info("Generating query expansion/keywords")
+            keywords = self._expander.expand_query(translated_query)
+            search_query = (
+                f"{translated_query}\n{keywords}"
+                if keywords
+                else translated_query
+            )
+            logger.debug(f"Keywords extracted: '{keywords}'")
+            logger.debug(f"Final search query:\n{search_query}")
         # --- Without Query expansion
-        # search_query = translated_query
+        else:
+            search_query = translated_query
         # ---------
 
         pool_size = max(k * 10, 50)
@@ -92,36 +98,44 @@ class RetrieverService:
         chunks_map = self._chunks_loader.load(top_ids)
 
         # --- With Reranker
-        pool_chunks = [chunks_map[cid] for cid in top_ids if cid in chunks_map]
-        logger.debug(
-            f"Successfully loaded {len(pool_chunks)} chunks from storage."
-        )
+        if self._extended and self._reranker:
+            pool_chunks = [
+                chunks_map[cid] for cid in top_ids if cid in chunks_map
+            ]
+            logger.debug(
+                f"Successfully loaded {len(pool_chunks)} chunks from storage."
+            )
 
-        if not pool_chunks:
-            logger.debug("No chunks found. Returning empty list.")
-            return []
+            if not pool_chunks:
+                logger.debug("No chunks found. Returning empty list.")
+                return [], translated_query
 
-        formatted_texts = [
-            f"File: {c['file_path']}\nCode:\n{c['text']}" for c in pool_chunks
-        ]
+            formatted_texts = [
+                f"File: {c['file_path']}\nCode:\n{c['text']}"
+                for c in pool_chunks
+            ]
 
-        text_to_chunk = dict(zip(formatted_texts, pool_chunks))
+            text_to_chunk = dict(zip(formatted_texts, pool_chunks))
 
-        logger.info("Performing re-ranking")
-        logger.debug(
-            f"Sending {len(formatted_texts)} chunks to the reranker "
-            f"(top_k={k})"
-        )
-        best_texts = self._reranker.rerank(
-            query=translated_query,
-            chunks=formatted_texts,
-            top_k=k,
-        )
-        logger.debug(f"Reranker returned {len(best_texts)} top chunks.")
+            logger.info("Performing re-ranking")
+            logger.debug(
+                f"Sending {len(formatted_texts)} chunks to the reranker "
+                f"(top_k={k})"
+            )
+            best_texts = self._reranker.rerank(
+                query=translated_query,
+                chunks=formatted_texts,
+                top_k=k,
+            )
+            logger.debug(f"Reranker returned {len(best_texts)} top chunks.")
 
-        return [text_to_chunk[t] for t in best_texts if t in text_to_chunk]
+            return [
+                text_to_chunk[t] for t in best_texts if t in text_to_chunk
+            ], translated_query
         # --- Without Reranker
-        # return [chunks_map[cid] for cid in top_ids[:k] if cid in chunks_map]
+        return [
+            chunks_map[cid] for cid in top_ids[:k] if cid in chunks_map
+        ], translated_query
         # ---------
 
     def search(
@@ -131,7 +145,9 @@ class RetrieverService:
         question_id: str | None = None,
     ) -> tuple[MinimalSearchResults, list[Chunk]]:
         logger.debug(f"Starting search process (k={k})")
-        chunks = self.retrieve_chunks(original_query=original_query, k=k)
+        chunks, translated_query = self.retrieve_chunks(
+            original_query=original_query, k=k
+        )
 
         sources: list[MinimalSource] = [
             MinimalSource.model_validate(
@@ -152,7 +168,7 @@ class RetrieverService:
 
         return MinimalSearchResults(
             question_id=question_id,
-            question=original_query,
+            question=translated_query,
             retrieved_sources=sources,
         ), chunks
 

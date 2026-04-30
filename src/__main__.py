@@ -35,7 +35,7 @@ logger = logging.getLogger(__file__)
 class App:
     def __init__(self) -> None:
         settings.processed_dir.mkdir(parents=True, exist_ok=True)
-        settings.output_dir.mkdir(parents=True, exist_ok=True)
+        settings.output_dir_path.mkdir(parents=True, exist_ok=True)
 
     def index(
         self,
@@ -52,7 +52,7 @@ class App:
                 extensions = ",".join(extensions)
 
         entrypoint_index(
-            repositories=[Path(path)],
+            repositories=[Path(str(path))],
             bm25_dir_path=settings.bm25_dir,
             manifest_file_path=settings.manifest_path,
             chroma_dir_path=settings.chroma_dir,
@@ -72,7 +72,7 @@ class App:
         self._prepare(verbose)
 
         entrypoint_search(
-            original_query=query,
+            original_query=str(query),
             k=k,
             bm25_dir_path=settings.bm25_dir,
             chunks_file_path=settings.chunks_path,
@@ -83,7 +83,7 @@ class App:
 
     def search_dataset(
         self,
-        save_dir_path: str = str(settings.search_output),
+        save_dir_path: str = str(settings.output_dir_path),
         dataset_file_path: str = str(settings.unanswered_path),
         k: int = settings.default_k,
         verbose: int = 0,
@@ -91,8 +91,8 @@ class App:
         self._prepare(verbose)
 
         entrypoint_search_dataset(
-            dataset_file_path=Path(dataset_file_path),
-            save_dir_path=Path(save_dir_path),
+            dataset_file_path=Path(str(dataset_file_path)),
+            save_dir_path=Path(str(save_dir_path)),
             k=k,
             bm25_dir_path=settings.bm25_dir,
             chunks_file_path=settings.chunks_path,
@@ -111,7 +111,7 @@ class App:
         self._prepare(verbose)
 
         entrypoint_answer(
-            original_query=query,
+            original_query=str(query),
             k=k,
             bm25_dir_path=settings.bm25_dir,
             chunks_file_path=settings.chunks_path,
@@ -123,7 +123,7 @@ class App:
 
     def answer_dataset(
         self,
-        save_dir_path: str = str(settings.answer_output),
+        save_dir_path: str = str(settings.output_dir_path),
         dataset_file_path: str = str(settings.answered_path),
         k: int = settings.default_k,
         verbose: int = 0,
@@ -131,8 +131,8 @@ class App:
         self._prepare(verbose)
 
         entrypoint_answer_dataset(
-            dataset_file_path=Path(dataset_file_path),
-            save_dir_path=Path(save_dir_path),
+            dataset_file_path=Path(str(dataset_file_path)),
+            save_dir_path=Path(str(save_dir_path)),
             k=k,
             bm25_dir_path=settings.bm25_dir,
             chunks_file_path=settings.chunks_path,
@@ -143,8 +143,8 @@ class App:
 
     def evaluate(
         self,
+        predictions_file_path: str,
         dataset_file_path: str = str(settings.answered_path),
-        predictions_file_path: str = str(settings.search_output),
         ks: str | tuple[int, ...] = (1, 3, 5, 10),
         verbose: int = 0,
     ) -> None:
@@ -154,8 +154,8 @@ class App:
             ks = tuple(int(k.strip()) for k in ks.split(",") if k.strip())
 
         entrypoint_evaluate(
-            dataset_file_path=Path(dataset_file_path),
-            predictions_file_path=Path(predictions_file_path),
+            dataset_file_path=Path(str(dataset_file_path)),
+            predictions_file_path=Path(str(predictions_file_path)),
             ks=ks,
         )
 

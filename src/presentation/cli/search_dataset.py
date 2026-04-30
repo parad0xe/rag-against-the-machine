@@ -108,16 +108,22 @@ def entrypoint_search_dataset(
     )
 
     console.print("[bold cyan][3/3][/] Saving results to disk")
+
+    dataset_file_name = dataset_file_path.name
+    save_file_path = save_dir_path / dataset_file_name
     with console.status(
         "Writing JSON file",
         spinner="dots",
         spinner_style="bold magenta",
     ):
-        file_write_json(save_dir_path, student.model_dump_json(indent=2))
+        file_write_json(
+            save_file_path,
+            student.model_dump_json(indent=2),
+        )
 
     console.print(
         f"[bold green][ OK ][/] Results successfully saved to "
-        f"[bold white]{save_dir_path}[/]\n"
+        f"[bold white]{save_file_path}[/]\n"
     )
 
     console.rule("[bold green]Search dataset completed[/]", style="blue")

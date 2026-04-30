@@ -49,16 +49,22 @@ class RetrieverFactory:
         translation_engine = HuggingFaceTranslationEngine(
             model_name=translator_model
         )
-        cross_encoder_engine = CrossEncoderEngine(
-            model_name=cross_encoder_model
-        )
+        if manifest.with_semantic:
+            cross_encoder_engine = CrossEncoderEngine(
+                model_name=cross_encoder_model
+            )
+            reranker = RerankerService(
+                cross_encoder_engine=cross_encoder_engine
+            )
+            expander = QueryExpanderService(llm_engine=causal_engine)
+        else:
+            reranker = None
+            expander = None
 
         assistant = AssistantService(llm_engine=causal_engine)
-        expander = QueryExpanderService(llm_engine=causal_engine)
         translator = QueryTranslatorService(
             translation_engine=translation_engine
         )
-        reranker = RerankerService(cross_encoder_engine=cross_encoder_engine)
 
         query_stores: list[IndexStoreQueryPort] = [
             BM25IndexStoreQuery(bm25_dir_path, weight=0.6),
@@ -76,6 +82,7 @@ class RetrieverFactory:
             reranker=reranker,
             expander=expander,
             translator=translator,
+            extended=manifest.with_semantic,
         )
 
         return retriever, assistant

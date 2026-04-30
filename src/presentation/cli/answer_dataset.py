@@ -117,7 +117,12 @@ def entrypoint_answer_dataset(
 
             student.search_results.append(minimal_answer)
 
-            file_write_json(save_dir_path, student.model_dump_json(indent=2))
+            dataset_file_name = dataset_file_path.name
+            save_file_path = save_dir_path / dataset_file_name
+            file_write_json(
+                save_file_path,
+                student.model_dump_json(indent=2),
+            )
 
             progress.advance(task_id)
 

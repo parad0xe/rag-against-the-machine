@@ -30,16 +30,16 @@ class Settings(BaseSettings):
         dataset_dir / "AnsweredQuestions/dataset_code_public.json"
     )
 
-    output_dir: Path = Path("data/output")
-    search_output: Path = output_dir / "search_results.json"
-    answer_output: Path = output_dir / "answer_results.json"
+    output_dir_path: Path = Path("data/output")
+    # search_output_dir_path: Path = output_dir / "search_results.json"
+    # answer_output_dir_path: Path = output_dir / "answer_results.json"
 
     llm_model: str = "Qwen/Qwen3-0.6B"
     cross_encoder_model: str = "BAAI/bge-reranker-base"
     translator_model: str = "Helsinki-NLP/opus-mt-mul-en"
     embedding_model: str = "all-MiniLM-L6-v2"
 
-    default_k: int = 10
+    default_k: int = 5
     max_chunk_size: int = 2000
     overlap_threshold: float = 0.05
 

@@ -22,7 +22,7 @@ def entrypoint_search(
     chunks_file_path: Path,
     manifest_file_path: Path,
     embedding_model_name: str,
-    k: int = 10,
+    k: int,
 ) -> None:
     console = get_console()
 
