@@ -14,7 +14,6 @@ from src.application.ports.llm.engine import (
     ChatMessage,
     TextGenerationEnginePort,
 )
-from src.config import settings
 from src.domain.exceptions.base import RagError
 
 cast(Any, transformers_logging).disable_progress_bar()
@@ -23,7 +22,7 @@ logger = logging.getLogger(__file__)
 
 
 class HuggingFaceCausalEngine(TextGenerationEnginePort):
-    def __init__(self, model_name: str = settings.llm_model) -> None:
+    def __init__(self, model_name: str) -> None:
         logger.info(f"Loading LLM {model_name}")
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)

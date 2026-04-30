@@ -38,13 +38,20 @@ class RetrieverFactory:
         chunks_file_path: Path,
         manifest_file_path: Path,
         embedding_model_name: str,
+        llm_model: str = settings.llm_model,
+        translator_model: str = settings.translator_model,
+        cross_encoder_model: str = settings.cross_encoder_model,
     ) -> tuple[RetrieverService, LLMAssistantPort]:
 
         manifest = ManifestJSONStorage().read(manifest_file_path)
 
-        causal_engine = HuggingFaceCausalEngine(model_name=settings.llm_model)
-        translation_engine = HuggingFaceTranslationEngine()
-        cross_encoder_engine = CrossEncoderEngine()
+        causal_engine = HuggingFaceCausalEngine(model_name=llm_model)
+        translation_engine = HuggingFaceTranslationEngine(
+            model_name=translator_model
+        )
+        cross_encoder_engine = CrossEncoderEngine(
+            model_name=cross_encoder_model
+        )
 
         assistant = AssistantService(llm_engine=causal_engine)
         expander = QueryExpanderService(llm_engine=causal_engine)

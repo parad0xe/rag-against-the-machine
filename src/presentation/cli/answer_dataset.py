@@ -100,11 +100,9 @@ def entrypoint_answer_dataset(
                 ),
             )
 
-            context_str = build_context_from_chunks(chunks)
-
             answer_stream = llm.generate_answer(
                 query=result.question,
-                context=context_str,
+                context=build_context_from_chunks(chunks),
             )
 
             full_text = "".join(answer_stream)

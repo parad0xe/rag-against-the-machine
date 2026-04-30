@@ -21,7 +21,7 @@ def entrypoint_search(
     chroma_dir_path: Path,
     chunks_file_path: Path,
     manifest_file_path: Path,
-    embedding_model_name: str = "all-MiniLM-L6-v2",
+    embedding_model_name: str,
     k: int = 10,
 ) -> None:
     console = get_console()

@@ -11,7 +11,7 @@ from rich.panel import Panel
 from rich.spinner import Spinner
 
 from src.factories.retriever import RetrieverFactory
-from src.utils.format import parse_llm_thought
+from src.utils.format import build_context_from_chunks, parse_llm_thought
 
 logger = logging.getLogger(__file__)
 
@@ -62,24 +62,10 @@ def entrypoint_answer(
         )
     console.print("[bold green][ OK ][/] Search completed.\n")
 
-    context: list[str] = []
-    for k, chunk in enumerate(chunks):
-        file_path = chunk.get("file_path")
-        start_index = chunk.get("first_character_index")
-        end_index = chunk.get("last_character_index")
-        text_content = chunk.get("text")
-
-        context_source = (
-            f"---  SOURCE #{k + 1} ---\n"
-            f"File: {file_path} (Chars: {start_index}-{end_index})\n"
-            f"Content: {text_content}"
-        )
-        context.append(context_source)
-
     console.print("[bold cyan][3/3][/] Generating answer")
     answer_stream = llm.generate_answer(
         query=original_query,
-        context="\n".join(context),
+        context=build_context_from_chunks(chunks),
     )
 
     full_text = ""
