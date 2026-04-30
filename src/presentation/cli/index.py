@@ -54,7 +54,6 @@ def entrypoint_index(
     console.rule("[bold blue]Indexing[/]", style="blue")
     console.print()
 
-    repositories = list({repo.resolve() for repo in repositories})
     parsed_extensions: list[str] = parse_extensions(extensions)
 
     start_time = time.perf_counter()
