@@ -105,7 +105,7 @@ class App:
         self,
         query: str,
         k: int = settings.default_k,
-        details: bool = False,
+        thinking: bool = False,
         verbose: int = 0,
     ) -> None:
         self._prepare(verbose)
@@ -118,7 +118,7 @@ class App:
             chroma_dir_path=settings.chroma_dir,
             manifest_file_path=settings.manifest_path,
             embedding_model_name=settings.embedding_model,
-            with_details=details,
+            thinking=thinking,
         )
 
     def answer_dataset(
@@ -126,6 +126,7 @@ class App:
         save_dir_path: str = str(settings.output_dir_path),
         dataset_file_path: str = str(settings.answered_path),
         k: int = settings.default_k,
+        thinking: bool = False,
         verbose: int = 0,
     ) -> None:
         self._prepare(verbose)
@@ -139,6 +140,7 @@ class App:
             chroma_dir_path=settings.chroma_dir,
             manifest_file_path=settings.manifest_path,
             embedding_model_name=settings.embedding_model,
+            thinking=thinking,
         )
 
     def evaluate(

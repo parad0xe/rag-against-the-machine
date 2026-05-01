@@ -25,7 +25,7 @@ def entrypoint_answer(
     manifest_file_path: Path,
     embedding_model_name: str,
     k: int,
-    with_details: bool,
+    thinking: bool,
 ) -> None:
     console = get_console()
 
@@ -56,7 +56,7 @@ def entrypoint_answer(
         spinner="dots",
         spinner_style="bold magenta",
     ):
-        _, chunks = retriever.search(
+        _, chunks, translated_query = retriever.search(
             original_query=original_query,
             k=k,
         )
@@ -64,8 +64,9 @@ def entrypoint_answer(
 
     console.print("[bold cyan][3/3][/] Generating answer")
     answer_stream = llm.generate_answer(
-        query=original_query,
+        query=translated_query,
         context=build_context_from_chunks(chunks),
+        thinking=thinking,
     )
 
     full_text = ""
@@ -86,7 +87,7 @@ def entrypoint_answer(
 
             panels = []
 
-            if thinking_text and with_details:
+            if thinking_text and thinking:
                 panels.append(
                     Panel(
                         Markdown(thinking_text),

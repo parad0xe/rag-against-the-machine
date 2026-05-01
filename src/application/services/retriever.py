@@ -40,7 +40,7 @@ class RetrieverService:
     def retrieve_chunks(
         self,
         original_query: str,
-        k: int = 10,
+        k: int = 5,
     ) -> tuple[list[Chunk], str]:
         logger.debug(f"Original query received: '{original_query}'")
 
@@ -74,10 +74,13 @@ class RetrieverService:
         logger.debug(f"Querying active stores with pool_size={pool_size}")
 
         with ThreadPoolExecutor() as executor:
-            futures = {
-                executor.submit(store.search, search_query, k=pool_size): store
-                for store in self._index_store_registry.active_stores
-            }
+            futures = {}
+            for store in self._index_store_registry.active_stores:
+                logger.debug(f"Starting search in store '{store.name}'...")
+                future = executor.submit(
+                    store.search, search_query, k=pool_size
+                )
+                futures[future] = store
 
             for future in futures:
                 store = futures[future]
@@ -90,12 +93,14 @@ class RetrieverService:
                 else:
                     logger.debug(f"Store '{store.name}' returned 0 results.")
 
-        logger.info("Performing RFF")
+        logger.info("Performing RRF")
         top_results = self.__compute_rrf(search_results)[:pool_size]
         top_ids = [cid for cid, _ in top_results]
         logger.debug(f"Computed RRF. Kept top {len(top_ids)} unique chunks.")
 
+        logger.debug("Loading chunks from chunks")
         chunks_map = self._chunks_loader.load(top_ids)
+        logger.debug(f"Chunks loaded. Found {len(chunks_map)} items in cache.")
 
         # --- With Reranker
         if self._extended and self._reranker:
@@ -133,6 +138,7 @@ class RetrieverService:
                 text_to_chunk[t] for t in best_texts if t in text_to_chunk
             ], translated_query
         # --- Without Reranker
+        logger.debug("Returning chunks directly to the LLM")
         return [
             chunks_map[cid] for cid in top_ids[:k] if cid in chunks_map
         ], translated_query
@@ -143,7 +149,7 @@ class RetrieverService:
         original_query: str,
         k: int = 10,
         question_id: str | None = None,
-    ) -> tuple[MinimalSearchResults, list[Chunk]]:
+    ) -> tuple[MinimalSearchResults, list[Chunk], str]:
         logger.debug(f"Starting search process (k={k})")
         chunks, translated_query = self.retrieve_chunks(
             original_query=original_query, k=k
@@ -166,17 +172,21 @@ class RetrieverService:
             md5(original_query) if question_id is None else question_id
         )
 
-        return MinimalSearchResults(
-            question_id=question_id,
-            question=translated_query,
-            retrieved_sources=sources,
-        ), chunks
+        return (
+            MinimalSearchResults(
+                question_id=question_id,
+                question=translated_query,
+                retrieved_sources=sources,
+            ),
+            chunks,
+            translated_query,
+        )
 
     def search_dataset_stream(
         self,
         dataset: RagDataset,
         k: int = 10,
-    ) -> Generator[tuple[MinimalSearchResults, list[Chunk]], None, None]:
+    ) -> Generator[tuple[MinimalSearchResults, list[Chunk], str], None, None]:
         logger.debug(
             f"Streaming search for {len(dataset.rag_questions)} questions."
         )

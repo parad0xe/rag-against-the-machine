@@ -16,62 +16,60 @@ class AssistantService(LLMAssistantPort):
         self._llm_engine = llm_engine
 
     def generate_answer(
-        self, query: str, context: str
+        self, query: str, context: str, thinking: bool = False
     ) -> Generator[str, None, None]:
         if not context.strip():
             yield "I could not find enough information to answer."
             return
 
+        logger.debug(f"Context length provided: {len(context)} characters.")
+
         system_prompt = textwrap.dedent(
             """
-            You are a strict, robotic code analysis AI. You must answer
-            the user's question using ONLY the information
-            provided in the context.
+            You are a strict factual extraction model for RAG.
 
-            If the answer cannot be found, reply ONLY with:
-            "I could not find enough information to answer."
+            Use only CONTEXT_START to CONTEXT_END.
+            Do not use any outside knowledge.
 
-            You are FORBIDDEN to use conversational filler
-            (e.g., "Here is the answer", "Based on the context").
+            Follow these rules:
+            - Answer only what is explicitly supported by the context.
+            - Quote the exact evidence used in the context.
+            - Do not add disclaimers, or conversational text.
+            - Do not invent sources, citations, file path, or character ranges.
 
-            Sourcing all the best source files.
+            If the answer is not clearly present in the context,
+            respond exactly with:
+            I could not find enough information to answer.
 
-            You MUST use this EXACT format:
+            However, if the answer is present, use exactly this format:
+
             ### Answer
-            [Your concise answer here]
+            [factual answer]
 
             ### Sources
             - [File: <file_path> (Chars: <start>-<end>)]
+                - [exact quote here]
 
-            EXAMPLE OF VALID RESPONSE:
-            ### Answer
-            The `AuthenticationService` uses JWT
-            tokens with a 15-minute expiration time.
-
-            ### Sources
-            - [File: src/auth/service.py (Chars: 450-512)]
+            Output nothing else.
             """
         ).strip()
 
-        assistant_prompt = textwrap.dedent(
-            f"""
-            <context>
-            {context}
-            </context>
-            """
-        )
-
         user_prompt = textwrap.dedent(
             f"""
+            CONTEXT_START
+            {context}
+            CONTEXT_END
+
             Question: {query}
             """
         ).strip()
 
         messages: list[ChatMessage] = [
             {"role": "system", "content": system_prompt},
-            {"role": "assistant", "content": assistant_prompt},
             {"role": "user", "content": user_prompt},
         ]
+
+        logger.debug("Starting llm generation stream...")
 
         stream = self._llm_engine.generate(
             messages=messages,
@@ -79,8 +77,14 @@ class AssistantService(LLMAssistantPort):
             max_new_tokens=2048,
             repetition_penalty=1.0,
             do_sample=False,
-            enable_thinking=True,
+            enable_thinking=thinking,
         )
 
+        token_count = 0
         for token in stream:
+            token_count += 1
             yield str(token)
+
+        logger.debug(
+            f"LLM generation stream completed. streamed {token_count} tokens."
+        )

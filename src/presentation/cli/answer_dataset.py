@@ -39,6 +39,7 @@ def entrypoint_answer_dataset(
     manifest_file_path: Path,
     k: int,
     embedding_model_name: str,
+    thinking: bool,
 ) -> None:
     console = get_console()
 
@@ -92,7 +93,7 @@ def entrypoint_answer_dataset(
             "Processing dataset", total=len(dataset.rag_questions)
         )
 
-        for result, chunks in results_stream:
+        for result, chunks, translated_query in results_stream:
             progress.update(
                 task_id,
                 description=(
@@ -101,8 +102,9 @@ def entrypoint_answer_dataset(
             )
 
             answer_stream = llm.generate_answer(
-                query=result.question,
+                query=translated_query,
                 context=build_context_from_chunks(chunks),
+                thinking=thinking,
             )
 
             full_text = "".join(answer_stream)

@@ -7,7 +7,7 @@ class LLMQueryExpanderPort(Protocol):
 
 class LLMAssistantPort(Protocol):
     def generate_answer(
-        self, query: str, context: str
+        self, query: str, context: str, thinking: bool = False
     ) -> Generator[str, None, None]: ...
 
 
