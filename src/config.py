@@ -13,17 +13,17 @@ class Settings(BaseSettings):
 
     data_dir: Path = Path("data")
 
-    repo_path: Path = data_dir / Path("raw/vllm-0.10.1")
+    repo_path: Path = data_dir / "raw/vllm-0.10.1"
 
     # PROCESSED
-    processed_dir: Path = data_dir / Path("processed")
+    processed_dir: Path = data_dir / "processed"
     bm25_dir: Path = processed_dir / "bm25_index"
     chroma_dir: Path = processed_dir / "chroma_index"
     manifest_path: Path = processed_dir / "manifest.json"
     chunks_path: Path = processed_dir / "chunks.json"
 
     # DATASETS
-    dataset_dir: Path = data_dir / Path("datasets")
+    dataset_dir: Path = data_dir / "datasets"
     unanswered_path: Path = (
         dataset_dir / "UnansweredQuestions/dataset_code_public.json"
     )
@@ -32,9 +32,9 @@ class Settings(BaseSettings):
     )
 
     # OUTPUT
-    search_output_dir_path: Path = data_dir / Path("output/search_results")
-    answer_output_dir_path: Path = data_dir / Path(
-        "output/search_results_and_answer"
+    search_output_dir_path: Path = data_dir / "output/search_results"
+    answer_output_dir_path: Path = (
+        data_dir / "output/search_results_and_answer"
     )
 
     # MODELS

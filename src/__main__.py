@@ -94,8 +94,6 @@ class App:
         self._prepare(verbose)
         ensure_valid_file_path(dataset_file_path)
 
-        settings.search_output_dir_path.mkdir(parents=True, exist_ok=True)
-
         entrypoint_search_dataset(
             dataset_file_path=Path(str(dataset_file_path)),
             save_dir_path=Path(str(save_dir_path)),
@@ -140,8 +138,6 @@ class App:
     ) -> None:
         self._prepare(verbose)
         ensure_valid_file_path(dataset_file_path)
-
-        settings.answer_output_dir_path.mkdir(parents=True, exist_ok=True)
 
         entrypoint_answer_dataset(
             dataset_file_path=Path(str(dataset_file_path)),
