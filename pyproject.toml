@@ -2,8 +2,24 @@
 name = "rag-against-the-machine"
 version = "0.0.1"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 dependencies = [
+    "accelerate>=1.13.0",
+    "bm25s>=0.3.3",
+    "chromadb>=1.5.8",
+    "fire>=0.7.1",
+    "langchain>=1.2.15",
+    "langchain-text-splitters>=1.1.1",
+    "langdetect>=1.0.9",
+    "pydantic>=2.13.2",
+    "rich>=15.0.0",
+    "sacremoses>=0.1.1",
+    "sentence-transformers>=5.4.1",
+    "sentencepiece>=0.2.1",
+    "tqdm>=4.67.3",
+    "transformers>=5.7.0",
+    "torch>=2.11.0",
+    "pydantic-settings>=2.14.0",
 ]
 
 [dependency-groups]
@@ -14,4 +30,16 @@ dev = [
 
 [[tool.mypy.overrides]]
 module = "tqdm.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "bm25s.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "fire.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "langdetect.*"
 ignore_missing_imports = true

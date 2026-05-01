@@ -3,6 +3,7 @@ MAKEFLAGS=--no-print-directory
 # structure
 ARGS ?= 
 
+
 VENV := .venv
 VENV_STATE_PROD := $(VENV)/.install
 VENV_STATE_DEV := $(VENV)/.install-dev
@@ -21,13 +22,13 @@ FIND_CACHES = find . \
 # tools
 UV := uv
 PYTHON := $(VENV)/bin/python3
-FLAKE8 := $(PYTHON) -m flake8 --exclude $(VENV),libs,.git
-MYPY := $(PYTHON) -m mypy --exclude $(VENV) --exclude libs --exclude .git 
+FLAKE8 := $(PYTHON) -m flake8 --exclude $(VENV),libs,.git,vllm*,
+MYPY := $(PYTHON) -m mypy --exclude $(VENV) --exclude libs --exclude .git --exclude vllm*
 
 # rules
-install: $(UV_LOCK) $(VENV_STATE_PROD)
+install: uv_check $(UV_LOCK) $(VENV_STATE_PROD)
 
-install-dev: $(UV_LOCK) $(VENV_STATE_DEV)
+install-dev: uv_check $(UV_LOCK) $(VENV_STATE_DEV)
 
 run: install
 	@echo "$(UV) run python -m src $(ARGS)"
@@ -64,5 +65,12 @@ lint: install-dev
 lint-strict: install-dev
 	@$(FLAKE8)
 	@$(MYPY) . --strict
+	
+uv_check:
+	@command -v $(UV) >/dev/null 2>&1 || { \
+		echo "Error: The '$(UV)' tool is not installed or not in the PATH." >&2; \
+		echo "To install it: curl -LsSf https://astral.sh/uv/install.sh | sh" >&2; \
+		exit 1; \
+	}
 
-.PHONY: install install-dev run cache-clean clean debug lint lint-strict
+.PHONY: install install-dev run cache-clean clean debug lint lint-strict uv_check
