@@ -64,16 +64,16 @@ The expected files for the project are structured as follows:
 ```txt
 .
 ├── src/
-│   ├── application/                        # Ports and Services (Business logic)
-│   ├── domain/                             # Pydantic Models and Exceptions
-│   ├── infrastructure/                     # LLM Engines, Vector Stores, Loaders
-│   ├── presentation/                       # CLI entrypoints (Fire)
-│   ├── factories/                          # Dependency Injection
-│   ├── config.py                           # Global settings
-│   └── __main__.py                         # Application entrypoint
+│   ├── application/                        # ports and services
+│   ├── domain/                             # pydantic models and exceptions
+│   ├── infrastructure/                     # llm engines, vector stores, loaders
+│   ├── presentation/                       # cli entrypoints (fire)
+│   ├── factories/                          # dependency injection
+│   ├── config.py                           # global settings
+│   └── __main__.py                         # application entrypoint
 ├── data/
-│   ├── output/                             # Generation results
-│   ├── processed/                          # Indexing results
+│   ├── output/                             # generation results
+│   ├── processed/                          # indexing results
 │   └── datasets/
 │       ├── AnsweredQuestions/
 │       │   ├── dataset_code_public.json
