@@ -40,7 +40,9 @@ def iter_file_paths(
     return None
 
 
-def ensure_valid_file_path(path: Path) -> None:
+def ensure_valid_file_path(path: Path | str) -> None:
+    if isinstance(path, str):
+        path = Path(path)
     if not path.exists():
         raise StorageFileNotFoundError(path)
     if not path.is_file():
@@ -48,8 +50,11 @@ def ensure_valid_file_path(path: Path) -> None:
 
 
 def ensure_valid_dir_path(
-    path: Path, modes: Iterable[int] = (os.R_OK,)
+    path: Path | str,
+    modes: Iterable[int] = (os.R_OK,),
 ) -> None:
+    if isinstance(path, str):
+        path = Path(path)
     if not path.exists():
         raise StorageDirNotFoundError(path)
 

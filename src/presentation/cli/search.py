@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 from pydantic import (
+    PositiveInt,
     validate_call,
 )
 from rich import get_console
@@ -22,7 +23,7 @@ def entrypoint_search(
     chunks_file_path: Path,
     manifest_file_path: Path,
     embedding_model_name: str,
-    k: int,
+    k: PositiveInt,
 ) -> None:
     console = get_console()
 
@@ -52,7 +53,7 @@ def entrypoint_search(
         spinner="dots",
         spinner_style="bold magenta",
     ):
-        result, _ = retriever.search(
+        result, _, _ = retriever.search(
             original_query=original_query,
             k=k,
         )

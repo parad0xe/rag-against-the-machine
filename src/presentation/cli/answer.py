@@ -2,7 +2,7 @@ import logging
 import time
 from pathlib import Path
 
-from pydantic import validate_call
+from pydantic import PositiveInt, validate_call
 from rich import get_console
 from rich.console import Group
 from rich.live import Live
@@ -24,7 +24,7 @@ def entrypoint_answer(
     chunks_file_path: Path,
     manifest_file_path: Path,
     embedding_model_name: str,
-    k: int,
+    k: PositiveInt,
     thinking: bool,
 ) -> None:
     console = get_console()

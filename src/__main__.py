@@ -26,6 +26,7 @@ from src.presentation.cli.index import entrypoint_index
 from src.presentation.cli.manifest_stats import entrypoint_manifest_stats
 from src.presentation.cli.search import entrypoint_search
 from src.presentation.cli.search_dataset import entrypoint_search_dataset
+from src.utils.file import ensure_valid_file_path
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -35,7 +36,6 @@ logger = logging.getLogger(__file__)
 class App:
     def __init__(self) -> None:
         settings.processed_dir.mkdir(parents=True, exist_ok=True)
-        settings.output_dir_path.mkdir(parents=True, exist_ok=True)
 
     def index(
         self,
@@ -71,6 +71,9 @@ class App:
     ) -> None:
         self._prepare(verbose)
 
+        if not query.strip():
+            raise RagError("query is empty")
+
         entrypoint_search(
             original_query=str(query),
             k=k,
@@ -83,12 +86,15 @@ class App:
 
     def search_dataset(
         self,
-        save_dir_path: str = str(settings.output_dir_path),
+        save_dir_path: str = str(settings.search_output_dir_path),
         dataset_file_path: str = str(settings.unanswered_path),
         k: int = settings.default_k,
         verbose: int = 0,
     ) -> None:
         self._prepare(verbose)
+        ensure_valid_file_path(dataset_file_path)
+
+        settings.search_output_dir_path.mkdir(parents=True, exist_ok=True)
 
         entrypoint_search_dataset(
             dataset_file_path=Path(str(dataset_file_path)),
@@ -110,6 +116,9 @@ class App:
     ) -> None:
         self._prepare(verbose)
 
+        if not query.strip():
+            raise RagError("query is empty")
+
         entrypoint_answer(
             original_query=str(query),
             k=k,
@@ -123,13 +132,16 @@ class App:
 
     def answer_dataset(
         self,
-        save_dir_path: str = str(settings.output_dir_path),
+        save_dir_path: str = str(settings.answer_output_dir_path),
         dataset_file_path: str = str(settings.answered_path),
         k: int = settings.default_k,
         thinking: bool = False,
         verbose: int = 0,
     ) -> None:
         self._prepare(verbose)
+        ensure_valid_file_path(dataset_file_path)
+
+        settings.answer_output_dir_path.mkdir(parents=True, exist_ok=True)
 
         entrypoint_answer_dataset(
             dataset_file_path=Path(str(dataset_file_path)),
@@ -151,9 +163,16 @@ class App:
         verbose: int = 0,
     ) -> None:
         self._prepare(verbose)
+        ensure_valid_file_path(predictions_file_path)
+        ensure_valid_file_path(dataset_file_path)
 
         if isinstance(ks, str):
-            ks = tuple(int(k.strip()) for k in ks.split(",") if k.strip())
+            try:
+                ks = tuple(int(k.strip()) for k in ks.split(",") if k.strip())
+            except ValueError:
+                raise RagError(f"can't convert str {ks} to tuple of int.")
+        elif isinstance(ks, int):
+            ks = (ks,)
 
         entrypoint_evaluate(
             dataset_file_path=Path(str(dataset_file_path)),
@@ -168,6 +187,8 @@ class App:
         verbose: int = 0,
     ) -> None:
         self._prepare(verbose)
+        ensure_valid_file_path(path)
+
         entrypoint_manifest_stats(manifest_file_path=Path(path), all=all)
 
     def _prepare(self, verbose: int) -> None:

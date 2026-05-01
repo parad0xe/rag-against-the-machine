@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 
 from pydantic import (
+    PositiveInt,
     validate_call,
 )
 from rich import get_console
@@ -37,7 +38,7 @@ def entrypoint_answer_dataset(
     chroma_dir_path: Path,
     chunks_file_path: Path,
     manifest_file_path: Path,
-    k: int,
+    k: PositiveInt,
     embedding_model_name: str,
     thinking: bool,
 ) -> None:

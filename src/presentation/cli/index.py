@@ -4,7 +4,7 @@ import logging
 import time
 from pathlib import Path
 
-from pydantic import Field, PositiveInt, validate_call
+from pydantic import Field, validate_call
 from rich import get_console
 from rich.progress import (
     BarColumn,
@@ -46,7 +46,7 @@ def entrypoint_index(
     extensions: str,
     embedding_model_name: str,
     with_semantic: bool,
-    chunk_size: PositiveInt = Field(2000, gt=200, le=2000),
+    chunk_size: int = Field(gt=200, lt=6000),
 ) -> None:
     console = get_console()
 

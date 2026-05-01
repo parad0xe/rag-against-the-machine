@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 
 from pydantic import (
+    PositiveInt,
     validate_call,
 )
 from rich import get_console
@@ -29,7 +30,7 @@ logger = logging.getLogger(__file__)
 def entrypoint_search_dataset(
     dataset_file_path: Path,
     save_dir_path: Path,
-    k: int,
+    k: PositiveInt,
     bm25_dir_path: Path,
     chroma_dir_path: Path,
     chunks_file_path: Path,
@@ -87,7 +88,7 @@ def entrypoint_search_dataset(
             "Searching dataset", total=len(dataset.rag_questions)
         )
 
-        for result, _ in results_stream:
+        for result, _, _ in results_stream:
             progress.update(
                 task_id,
                 description=(

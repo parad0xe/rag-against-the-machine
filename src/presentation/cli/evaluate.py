@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import cast
 
-from pydantic import validate_call
+from pydantic import PositiveInt, validate_call
 from rich import get_console
 from rich.table import Table
 
@@ -20,7 +20,7 @@ from src.infrastructure.dataset.reader import RagDatasetJSONReader
 def entrypoint_evaluate(
     dataset_file_path: Path,
     predictions_file_path: Path,
-    ks: tuple[int, ...] = (1, 3, 5, 10),
+    ks: tuple[PositiveInt, ...] = (1, 3, 5, 10),
 ) -> None:
     console = get_console()
 
