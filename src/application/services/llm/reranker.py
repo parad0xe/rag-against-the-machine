@@ -8,12 +8,33 @@ logger = logging.getLogger(__file__)
 
 
 class RerankerService(LLMReRankerPort):
+    """
+    Service that uses a cross-encoder to improve retrieval relevance.
+    """
+
     def __init__(self, cross_encoder_engine: CrossEncoderEnginePort) -> None:
+        """
+        Initializes the reranker service.
+
+        Args:
+            cross_encoder_engine: Port for the cross-encoder engine.
+        """
         self._cross_encoder_engine = cross_encoder_engine
 
     def rerank(
         self, query: str, chunks: Sequence[str], top_k: int = 5
     ) -> list[str]:
+        """
+        Re-ranks a list of chunks based on their relevance to the query.
+
+        Args:
+            query: The search query.
+            chunks: The list of retrieved chunks to re-rank.
+            top_k: The number of top chunks to return.
+
+        Returns:
+            The top_k most relevant chunks.
+        """
         if not chunks:
             return []
 

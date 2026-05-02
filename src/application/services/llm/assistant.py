@@ -12,12 +12,33 @@ logger = logging.getLogger(__file__)
 
 
 class AssistantService(LLMAssistantPort):
+    """
+    Service that uses an LLM to extract answers from provided context.
+    """
+
     def __init__(self, llm_engine: TextGenerationEnginePort) -> None:
+        """
+        Initializes the assistant service.
+
+        Args:
+            llm_engine: Port for the text generation engine.
+        """
         self._llm_engine = llm_engine
 
     def generate_answer(
         self, query: str, context: str, thinking: bool = False
     ) -> Generator[str, None, None]:
+        """
+        Generates a streamed answer based on context and a query.
+
+        Args:
+            query: The question asked by the user.
+            context: The text content retrieved from the index.
+            thinking: Whether to enable reasoning/thinking capabilities.
+
+        Yields:
+            A single string token of the generated response.
+        """
         if not context.strip():
             yield "I could not find enough information to answer."
             return

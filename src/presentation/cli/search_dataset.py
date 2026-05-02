@@ -37,6 +37,19 @@ def entrypoint_search_dataset(
     manifest_file_path: Path,
     embedding_model_name: str,
 ) -> None:
+    """
+    Executes a search for every question in a dataset and saves the results.
+
+    Args:
+        dataset_file_path: Path to the input dataset file.
+        save_dir_path: Directory where the results JSON will be saved.
+        k: Number of sources to retrieve per question.
+        bm25_dir_path: Path to the BM25 index directory.
+        chroma_dir_path: Path to the ChromaDB directory.
+        chunks_file_path: Path to the chunks JSON file.
+        manifest_file_path: Path to the manifest JSON file.
+        embedding_model_name: Name of the embedding model to use.
+    """
     console = get_console()
 
     console.print()

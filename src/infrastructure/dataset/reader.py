@@ -12,6 +12,10 @@ from src.utils.file import file_load_content
 
 
 class RagDatasetJSONReader(ReaderPort[RagDataset]):
+    """
+    Reader that parses RAG datasets from JSON files into model.
+    """
+
     @overload
     def read(
         self, file_path: Path, ignore_errors: Literal[False] = False
@@ -32,6 +36,20 @@ class RagDatasetJSONReader(ReaderPort[RagDataset]):
         file_path: Path,
         ignore_errors: bool = False,
     ) -> RagDataset | None:
+        """
+        Reads and validates a RAG dataset.
+
+        Args:
+            file_path: Path to the dataset JSON file.
+            ignore_errors: Whether to return None on parsing failure.
+
+        Returns:
+            The RagDataset model or None.
+
+        Raises:
+            SchemaInvalidJSONFormatError: If the JSON is malformed.
+            SchemaInvalidJSONRootError: If the JSON root is not a dictionary.
+        """
         content = file_load_content(
             file_path,
             ignore_errors=ignore_errors,

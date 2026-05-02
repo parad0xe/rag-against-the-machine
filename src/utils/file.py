@@ -23,6 +23,17 @@ def iter_file_paths(
     extensions: list[str],
     recursive: bool = False,
 ) -> Generator[Path, None, None] | None:
+    """
+    Iterates through files in a directory matching specific extensions.
+
+    Args:
+        basepath: Root directory to scan.
+        extensions: List of extensions to include.
+        recursive: Whether to scan subdirectories.
+
+    Yields:
+        A Path object for each matching file.
+    """
     if not basepath.exists():
         return None
 
@@ -41,6 +52,16 @@ def iter_file_paths(
 
 
 def ensure_valid_file_path(path: Path | str) -> None:
+    """
+    Validates that a path exists and is a file.
+
+    Args:
+        path: The path to check.
+
+    Raises:
+        StorageFileNotFoundError: If the path does not exist.
+        StorageNotAFileError: If the path is not a file.
+    """
     if isinstance(path, str):
         path = Path(path)
     if not path.exists():
@@ -53,6 +74,18 @@ def ensure_valid_dir_path(
     path: Path | str,
     modes: Iterable[int] = (os.R_OK,),
 ) -> None:
+    """
+    Validates that a path exists, is a directory, and has correct permissions.
+
+    Args:
+        path: The path to check.
+        modes: Sequence of access modes to verify (e.g., os.R_OK).
+
+    Raises:
+        StorageDirNotFoundError: If the path does not exist.
+        StorageNotADirectoryError: If the path is not a directory.
+        StorageFilePermissionError: If access modes are not met.
+    """
     if isinstance(path, str):
         path = Path(path)
     if not path.exists():
@@ -67,6 +100,15 @@ def ensure_valid_dir_path(
 
 
 def get_extension(file_path: str) -> str:
+    """
+    Extracts the file extension without the leading dot.
+
+    Args:
+        file_path: Path string.
+
+    Returns:
+        The extension string.
+    """
     ext = Path(file_path).suffix
     return ext.replace(".", "")
 
@@ -75,6 +117,21 @@ def file_load_content(
     file_path: Path,
     ignore_errors: bool = False,
 ) -> str | None:
+    """
+    Reads the content of a text file using UTF-8 encoding.
+
+    Args:
+        file_path: Path to the file.
+        ignore_errors: Whether to suppress IO and encoding errors.
+
+    Returns:
+        The raw text content or None.
+
+    Raises:
+        StorageFileNotFoundError: If file not found and ignore_errors is False.
+        StorageFilePermissionError: If permission denied.
+        StorageError: For invalid encoding or other OS errors.
+    """
     try:
         with open(file_path, encoding="utf-8", errors="strict") as f:
             return f.read()
@@ -102,6 +159,20 @@ def file_load_content(
 def file_write_json(
     file_path: Path, data: list[Any] | dict[Any, Any] | str
 ) -> None:
+    """
+    Writes data to a JSON file.
+
+    Args:
+        file_path: Destination path.
+        data: Data structure or raw JSON string to write.
+
+    Raises:
+        StorageFilePermissionError: If parent dir cannot be created or file
+            cannot be written.
+        SchemaJSONSerializationError: If data cannot be serialized.
+        StorageFileNotFoundError: If the file path is invalid.
+        StorageError: For other OS-level errors.
+    """
     try:
         file_path.parent.mkdir(parents=True, exist_ok=True)
     except PermissionError as e:
@@ -130,6 +201,15 @@ def file_write_json(
 
 
 def safe_rmtree(dir_path: Path) -> None:
+    """
+    Safely deletes a directory tree, restricted to the data directory.
+
+    Args:
+        dir_path: The directory to remove.
+
+    Raises:
+        StorageError: If the path is outside of the configured data directory.
+    """
     from src.config import settings
 
     resolved_path = dir_path.resolve()

@@ -11,6 +11,10 @@ logger = logging.getLogger(__file__)
 
 
 class ChromaIndexStoreQuery(BaseIndexStoreQuery):
+    """
+    Search implementation using ChromaDB for vector-based semantic retrieval.
+    """
+
     def __init__(
         self,
         dir_path: Path,
@@ -18,6 +22,15 @@ class ChromaIndexStoreQuery(BaseIndexStoreQuery):
         enable: bool = True,
         weight: float = 1.0,
     ) -> None:
+        """
+        Initializes the Chroma query store.
+
+        Args:
+            dir_path: Path to the ChromaDB storage directory.
+            embedding_model_name: Name of the SentenceTransformer model.
+            enable: Whether this store is enabled for searching.
+            weight: Relative weight for this store's results.
+        """
         super().__init__(name="Chroma", enable=enable, weight=weight)
         self._dir_path = dir_path
         self._embedding_model_name = embedding_model_name
@@ -25,6 +38,16 @@ class ChromaIndexStoreQuery(BaseIndexStoreQuery):
         self._model: SentenceTransformer | None = None
 
     def search(self, query: str, k: int) -> list[str] | None:
+        """
+        Executes a semantic vector search.
+
+        Args:
+            query: The search query text.
+            k: The number of results to retrieve.
+
+        Returns:
+            A list of matching chunk IDs.
+        """
         if self._collection is None:
             client = chromadb.PersistentClient(
                 path=str(self._dir_path),

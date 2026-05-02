@@ -14,13 +14,35 @@ logger = logging.getLogger(__file__)
 
 
 class HuggingFaceTranslationEngine(TranslationEnginePort):
+    """
+    Engine that translates text using Hugging Face Seq2Seq models.
+    """
+
     def __init__(self, model_name: str) -> None:
+        """
+        Initializes the translation engine.
+
+        Args:
+            model_name: The Hugging Face model identifier.
+        """
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self._model_name = model_name
         self.model: Any | None = None
 
     def translate(self, text: str) -> str:
+        """
+        Translates text to the target language.
+
+        Args:
+            text: Source text to translate.
+
+        Returns:
+            The translated text.
+
+        Raises:
+            RagError: If the model fails to load into memory.
+        """
         if self.model is None:
             logger.info(f"Loading translation model: {self._model_name}")
             try:

@@ -34,7 +34,12 @@ logger = logging.getLogger(__file__)
 
 
 class App:
+    """
+    CLI application class that maps commands to their respective entrypoints.
+    """
+
     def __init__(self) -> None:
+        """Initializes the application and ensures data directories exist."""
         settings.processed_dir.mkdir(parents=True, exist_ok=True)
 
     def index(
@@ -45,6 +50,16 @@ class App:
         semantic: bool = False,
         verbose: int = 0,
     ) -> None:
+        """
+        Indexes a repository.
+
+        Args:
+            path: Path to the repository.
+            extensions: File extensions to index.
+            max_chunk_size: Maximum size of text chunks.
+            semantic: Whether to enable semantic search capabilities.
+            verbose: Logging verbosity level (0-2).
+        """
         self._prepare(verbose)
 
         if not isinstance(extensions, str):
@@ -69,6 +84,14 @@ class App:
         k: int = settings.default_k,
         verbose: int = 0,
     ) -> None:
+        """
+        Searches for relevant chunks.
+
+        Args:
+            query: The search query.
+            k: Number of results to retrieve.
+            verbose: Logging verbosity level (0-2).
+        """
         self._prepare(verbose)
 
         if not query.strip():
@@ -91,6 +114,15 @@ class App:
         k: int = settings.default_k,
         verbose: int = 0,
     ) -> None:
+        """
+        Performs search for a dataset of questions.
+
+        Args:
+            save_dir_path: Directory to save results.
+            dataset_file_path: Path to the input dataset.
+            k: Number of results per question.
+            verbose: Logging verbosity level (0-2).
+        """
         self._prepare(verbose)
         ensure_valid_file_path(dataset_file_path)
 
@@ -112,6 +144,15 @@ class App:
         thinking: bool = False,
         verbose: int = 0,
     ) -> None:
+        """
+        Answers a question using RAG.
+
+        Args:
+            query: The question to answer.
+            k: Number of chunks for context.
+            thinking: Whether to show the reasoning process.
+            verbose: Logging verbosity level (0-2).
+        """
         self._prepare(verbose)
 
         if not query.strip():
@@ -136,6 +177,16 @@ class App:
         thinking: bool = False,
         verbose: int = 0,
     ) -> None:
+        """
+        Answers a dataset of questions.
+
+        Args:
+            save_dir_path: Directory to save answers.
+            dataset_file_path: Path to the input dataset.
+            k: Number of chunks per context.
+            thinking: Whether to show reasoning.
+            verbose: Logging verbosity level (0-2).
+        """
         self._prepare(verbose)
         ensure_valid_file_path(dataset_file_path)
 
@@ -158,6 +209,15 @@ class App:
         ks: str | tuple[int, ...] = (1, 3, 5, 10),
         verbose: int = 0,
     ) -> None:
+        """
+        Evaluates search results.
+
+        Args:
+            predictions_file_path: Path to the results JSON.
+            dataset_file_path: Path to ground truth.
+            ks: List of k values for recall calculation.
+            verbose: Logging verbosity level (0-2).
+        """
         self._prepare(verbose)
         ensure_valid_file_path(predictions_file_path)
         ensure_valid_file_path(dataset_file_path)
@@ -182,17 +242,32 @@ class App:
         all: bool = False,
         verbose: int = 0,
     ) -> None:
+        """
+        Displays manifest statistics.
+
+        Args:
+            path: Path to the manifest file.
+            all: Whether to show detailed extension stats.
+            verbose: Logging verbosity level (0-2).
+        """
         self._prepare(verbose)
         ensure_valid_file_path(path)
 
         entrypoint_manifest_stats(manifest_file_path=Path(path), all=all)
 
     def _prepare(self, verbose: int) -> None:
+        """
+        Configures logging and validates verbosity.
+
+        Args:
+            verbose: Logging verbosity level.
+        """
         v = TypeAdapter(NonNegativeInt).validate_python(verbose)
         LoggingSystem.global_setup(v)
 
 
 def main() -> None:
+    """Entrypoint function for the CLI."""
     logger.info("Application starting")
     os.environ.setdefault("PAGER", "cat")
     os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"

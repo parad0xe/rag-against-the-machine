@@ -7,7 +7,19 @@ logger = logging.getLogger(__file__)
 
 
 class EvaluatorService:
+    """
+    Service to calculate evaluation metrics like recall for search results.
+    """
+
     def __init__(self, overlap_threshold: float = 0.05) -> None:
+        """
+        Initializes the evaluator with an overlap threshold.
+
+        Args:
+            overlap_threshold: The minimum IoU (Intersection over Union)
+                ratio to consider a retrieved source as matching an
+                expected source.
+        """
         self._overlap_threshold = overlap_threshold
 
     def calculate_recall(
@@ -15,6 +27,16 @@ class EvaluatorService:
         retrieved_sources: list[MinimalSource],
         expected_sources: list[MinimalSource],
     ) -> float:
+        """
+        Calculates the recall for a set of retrieved sources.
+
+        Args:
+            retrieved_sources: Sources returned by the retriever.
+            expected_sources: Ground truth sources.
+
+        Returns:
+            The recall score as a float.
+        """
         if not expected_sources:
             logger.debug("No expected sources provided. Recall is 0.0.")
             return 0.0
@@ -35,6 +57,16 @@ class EvaluatorService:
         expected_source: MinimalSource,
         retrieved_sources: list[MinimalSource],
     ) -> bool:
+        """
+        Checks if an expected source is present in the retrieved sources.
+
+        Args:
+            expected_source: The ground truth source to find.
+            retrieved_sources: List of sources to search within.
+
+        Returns:
+            True if the source is found, False otherwise.
+        """
         expected_length = self._compute_source_length(expected_source)
         if expected_length == 0:
             return False
@@ -73,6 +105,15 @@ class EvaluatorService:
         return False
 
     def _compute_source_length(self, source: MinimalSource) -> int:
+        """
+        Computes the character length of a source.
+
+        Args:
+            source: The source to measure.
+
+        Returns:
+            The number of characters in the source range.
+        """
         return max(
             0, source.last_character_index - source.first_character_index
         )
@@ -82,6 +123,16 @@ class EvaluatorService:
         expected_source: MinimalSource,
         retrieved_source: MinimalSource,
     ) -> int:
+        """
+        Computes the length of the intersection between two sources.
+
+        Args:
+            expected_source: The first source.
+            retrieved_source: The second source.
+
+        Returns:
+            The number of overlapping characters.
+        """
         start_index = max(
             expected_source.first_character_index,
             retrieved_source.first_character_index,

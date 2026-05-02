@@ -11,10 +11,29 @@ logger = logging.getLogger(__file__)
 
 
 class QueryExpanderService(LLMQueryExpanderPort):
+    """
+    Service that uses an LLM to generate keywords for query expansion.
+    """
+
     def __init__(self, llm_engine: TextGenerationEnginePort) -> None:
+        """
+        Initializes the query expander service.
+
+        Args:
+            llm_engine: Port for the text generation engine.
+        """
         self._llm_engine = llm_engine
 
     def expand_query(self, query: str) -> str:
+        """
+        Generates expansion keywords for the provided query.
+
+        Args:
+            query: The original user query.
+
+        Returns:
+            A comma-separated string of expansion keywords.
+        """
         system_prompt = textwrap.dedent(
             """
             You are a strict keyword extraction engine.

@@ -16,18 +16,28 @@ logger = logging.getLogger(__file__)
 
 
 class StoreCommitSummary(TypedDict):
+    """
+    Summary of changes committed to an index store.
+    """
+
     added_docs: int
     added_chunks: int
     deleted_chunks: int
 
 
 class IndexerService:
+    """
+    Orchestrates the indexing process across repositories and stores.
+    """
+
     @property
     def commit_summary(self) -> dict[str, StoreCommitSummary]:
+        """Summary of changes for each registered store."""
         return self._commit_summary
 
     @property
     def indexed_document_count(self) -> int:
+        """Total number of documents processed in the current session."""
         return self._indexed_document_count
 
     def __init__(
@@ -38,6 +48,16 @@ class IndexerService:
         file_loader: ReaderPort[File],
         document_loader: DocumentLoaderPort,
     ) -> None:
+        """
+        Initializes the indexer service.
+
+        Args:
+            manifest_manager: Port for managing manifest state.
+            extensions: List of file extensions to include in indexing.
+            index_store_registry: Registry of synchronization stores.
+            file_loader: Port for reading raw files from disk.
+            document_loader: Port for processing files into documents.
+        """
         self._manifest_manager = manifest_manager
         self._index_store_registry = index_store_registry
         self._extensions: list[str] = extensions
@@ -54,6 +74,15 @@ class IndexerService:
     def index(
         self, repository: Path
     ) -> Generator[tuple[int, Path], None, None]:
+        """
+        Scans and indexes files in a repository.
+
+        Args:
+            repository: Path to the repository directory.
+
+        Yields:
+            Tuple of (total_files, current_file_path).
+        """
         logger.info(f"Starting indexing for repository: {repository}")
         ensure_valid_dir_path(repository)
 
@@ -98,6 +127,12 @@ class IndexerService:
             self._manifest_manager.track(document)
 
     def commit(self) -> Generator[tuple[str, int, int, str], None, None]:
+        """
+        Commits all tracked changes to the underlying stores.
+
+        Yields:
+            Tuples of (store_name, current_step, total_steps, description).
+        """
         for store in self._index_store_registry.stores:
             self._commit_summary[store.name] = {
                 "added_docs": store.added_documents_count,

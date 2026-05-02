@@ -27,6 +27,19 @@ def entrypoint_answer(
     k: PositiveInt,
     thinking: bool,
 ) -> None:
+    """
+    Executes the full RAG pipeline: search, context building, and answering.
+
+    Args:
+        original_query: The user's question.
+        bm25_dir_path: Path to the BM25 index directory.
+        chroma_dir_path: Path to the ChromaDB directory.
+        chunks_file_path: Path to the chunks JSON file.
+        manifest_file_path: Path to the manifest JSON file.
+        embedding_model_name: Name of the embedding model to use.
+        k: Number of chunks to retrieve for context.
+        thinking: Whether to show the model's thinking process.
+    """
     console = get_console()
 
     console.print()

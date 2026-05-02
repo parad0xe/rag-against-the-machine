@@ -11,6 +11,13 @@ from src.infrastructure.manifest.storage import ManifestJSONStorage
 
 @validate_call()
 def entrypoint_manifest_stats(manifest_file_path: Path, all: bool) -> None:
+    """
+    Reads the manifest and displays configuration and content statistics.
+
+    Args:
+        manifest_file_path: Path to the manifest JSON file.
+        all: Whether to show detailed statistics by file extension.
+    """
     console = get_console()
 
     console.print()

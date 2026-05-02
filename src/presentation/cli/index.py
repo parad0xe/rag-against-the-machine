@@ -48,6 +48,23 @@ def entrypoint_index(
     with_semantic: bool,
     chunk_size: int = Field(gt=200, lt=6000),
 ) -> None:
+    """
+    Scans repositories and synchronizes files into the various indexes.
+
+    Args:
+        repositories: List of repository paths to scan.
+        manifest_file_path: Path to the manifest JSON file.
+        bm25_dir_path: Path to the BM25 index directory.
+        chroma_dir_path: Path to the ChromaDB directory.
+        chunks_file_path: Path to the chunks JSON file.
+        extensions: Comma-separated list of file extensions to index.
+        embedding_model_name: Name of the embedding model to use.
+        with_semantic: Whether to enable/disable semantic indexing.
+        chunk_size: Maximum character count per chunk.
+
+    Raises:
+        NoDocumentError: If no documents are found matching the criteria.
+    """
     console = get_console()
 
     console.print()

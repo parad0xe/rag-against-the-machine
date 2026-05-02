@@ -6,6 +6,10 @@ from pathlib import Path
 
 
 class LoggingSystem:
+    """
+    Manager for the application-wide logging configuration.
+    """
+
     _ROOT_PACKAGE = str(Path(__name__).parent.absolute())
     ALLOWED_NAMESPACES = (_ROOT_PACKAGE, "__main__")
 
@@ -47,6 +51,12 @@ class LoggingSystem:
         cls: type[LoggingSystem],
         verbose: int,
     ) -> None:
+        """
+        Sets up the global logging state based on verbosity level.
+
+        Args:
+            verbose: Verbosity level (0, 1, or >=2).
+        """
         level: int = cls._get_level(verbose)
 
         logging.config.dictConfig(cls.CONFIG)
@@ -65,6 +75,9 @@ class LoggingSystem:
 
     @staticmethod
     def _get_level(verbose: int) -> int:
+        """
+        Maps an integer verbosity to a standard logging level.
+        """
         match verbose:
             case 0:
                 return logging.ERROR

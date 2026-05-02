@@ -31,6 +31,10 @@ from src.infrastructure.manifest.storage import ManifestJSONStorage
 
 
 class RetrieverFactory:
+    """
+    Factory class to instantiate and wire retriever components.
+    """
+
     @staticmethod
     def build(
         bm25_dir_path: Path,
@@ -42,6 +46,22 @@ class RetrieverFactory:
         translator_model: str = settings.translator_model,
         cross_encoder_model: str = settings.cross_encoder_model,
     ) -> tuple[RetrieverService, LLMAssistantPort]:
+        """
+        Builds the retriever service and assistant with the given config.
+
+        Args:
+            bm25_dir_path: Path to the BM25 index.
+            chroma_dir_path: Path to the ChromaDB storage.
+            chunks_file_path: Path to the chunks metadata file.
+            manifest_file_path: Path to the system manifest.
+            embedding_model_name: Name of the embedding model.
+            llm_model: Identifier for the causal LLM.
+            translator_model: Identifier for the translation model.
+            cross_encoder_model: Identifier for the re-ranking model.
+
+        Returns:
+            A tuple of (RetrieverService, LLMAssistantPort).
+        """
 
         manifest = ManifestJSONStorage().read(manifest_file_path)
 

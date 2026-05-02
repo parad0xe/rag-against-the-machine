@@ -15,16 +15,23 @@ logger = logging.getLogger(__file__)
 
 
 class ManifestManager(ManifestManagerPort):
+    """
+    Manager that maintains the system manifest and handles synchronization.
+    """
+
     @property
     def manifest(self) -> Manifest:
+        """The current system manifest."""
         return self._manifest
 
     @property
     def expired_chunk_ids(self) -> set[str]:
+        """IDs of chunks that are no longer in use after sync."""
         return self._expired_chunk_ids
 
     @property
     def fingerprint_mismatch(self) -> bool:
+        """Whether the current config differs from the loaded manifest."""
         return self._fingerprint_mismatch
 
     def __init__(
@@ -38,6 +45,19 @@ class ManifestManager(ManifestManagerPort):
         with_semantic: bool,
         fingerprint_seed: Iterable[str | int | bool] | None = None,
     ) -> None:
+        """
+        Initializes the manifest manager and syncs state from disk.
+
+        Args:
+            file_path: Path to the manifest file.
+            storage: Port for manifest storage operations.
+            extensions: Extensions to include in the index.
+            embedding_model_name: Name of the active embedding model.
+            repositories: List of repository paths.
+            chunk_size: Active chunk size configuration.
+            with_semantic: Whether semantic search is enabled.
+            fingerprint_seed: Values used to detect config changes.
+        """
         self._file_path = file_path
         self._storage = storage
         self._expired_chunk_ids: set[str] = set()
@@ -69,10 +89,25 @@ class ManifestManager(ManifestManagerPort):
         self.__sync(extensions)
 
     def get(self, file: File) -> ManifestFileCache | None:
+        """
+        Retrieves cached information for a specific file.
+
+        Args:
+            file: The file to look up in the manifest.
+
+        Returns:
+            The cached file information or None.
+        """
         cached_ext = self.manifest.files_by_ext.get(file.ext, {})
         return cached_ext.get(file.id, None)
 
     def track(self, document: Document) -> None:
+        """
+        Records the current state of a processed document in the manifest.
+
+        Args:
+            document: The processed document to track.
+        """
         cached_file = self.get(document.file)
 
         if not cached_file:
@@ -88,9 +123,18 @@ class ManifestManager(ManifestManagerPort):
         )
 
     def commit(self) -> None:
+        """
+        Saves the current manifest state to persistent storage.
+        """
         self._storage.save(self._file_path, self.manifest)
 
     def __sync(self, extensions: tuple[str] | list[str]) -> None:
+        """
+        Synchronizes the manifest state with the target extensions.
+
+        Args:
+            extensions: Extensions to keep in the manifest.
+        """
         if self._fingerprint_mismatch:
             self._purge_extensions(set(self.manifest.files_by_ext.keys()))
             return
@@ -109,6 +153,12 @@ class ManifestManager(ManifestManagerPort):
         self._validate_extensions(exts_to_keep)
 
     def _purge_extensions(self, exts_to_delete: set[str]) -> None:
+        """
+        Removes extensions and their associated chunks from the manifest.
+
+        Args:
+            exts_to_delete: Extensions to remove.
+        """
         for ext in exts_to_delete:
             if ext in self.manifest.files_by_ext:
                 for cached_file in self.manifest.files_by_ext[ext].values():
@@ -116,6 +166,12 @@ class ManifestManager(ManifestManagerPort):
                 del self.manifest.files_by_ext[ext]
 
     def _validate_extensions(self, exts_to_keep: set[str]) -> None:
+        """
+        Verifies that files in the manifest still exist on disk.
+
+        Args:
+            exts_to_keep: Extensions to validate.
+        """
         resolved_repos = {
             Path(repo).resolve() for repo in self.manifest.repositories
         }
@@ -141,6 +197,16 @@ class ManifestManager(ManifestManagerPort):
     def _is_file_valid(
         self, cached_file: ManifestFileCache, resolved_repos: set[Path]
     ) -> bool:
+        """
+        Checks if a cached file still exists and is within the repositories.
+
+        Args:
+            cached_file: The cached file data.
+            resolved_repos: Valid repository paths.
+
+        Returns:
+            True if valid, False otherwise.
+        """
         cached_path = Path(cached_file.file_path)
         if not cached_path.exists():
             return False

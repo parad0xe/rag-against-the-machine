@@ -21,6 +21,10 @@ logger = logging.getLogger(__file__)
 
 
 class RetrieverService:
+    """
+    Orchestrates the retrieval pipeline, including translation and re-ranking.
+    """
+
     def __init__(
         self,
         index_store_registry: IndexStoreRegistryPort[IndexStoreQueryPort],
@@ -30,6 +34,17 @@ class RetrieverService:
         expander: LLMQueryExpanderPort | None,
         extended: bool,
     ) -> None:
+        """
+        Initializes the retriever service.
+
+        Args:
+            index_store_registry: Registry of stores to query.
+            chunks_loader: Port for loading chunk content.
+            translator: Port for translating queries.
+            reranker: Optional port for re-ranking results.
+            expander: Optional port for query expansion.
+            extended: Whether to enable extended features like re-ranking.
+        """
         self._index_store_registry = index_store_registry
         self._chunks_loader = chunks_loader
         self._translator = translator
@@ -42,17 +57,22 @@ class RetrieverService:
         original_query: str,
         k: int = 5,
     ) -> tuple[list[Chunk], str]:
+        """
+        Performs the full retrieval pipeline to find relevant chunks.
+
+        Args:
+            original_query: The raw query from the user.
+            k: The final number of chunks to return.
+
+        Returns:
+            A tuple of (list of chunks, translated_query).
+        """
         logger.debug(f"Original query received: '{original_query}'")
 
-        # --- Query Translator
         translated_query = self._translator.translate_to_english(
             original_query
         )
-        # --- Without Translator
-        # translated_query = original_query
-        # --------
 
-        # --- With Query expansion
         if self._extended and self._expander:
             logger.info("Generating query expansion/keywords")
             keywords = self._expander.expand_query(translated_query)
@@ -63,10 +83,8 @@ class RetrieverService:
             )
             logger.debug(f"Keywords extracted: '{keywords}'")
             logger.debug(f"Final search query:\n{search_query}")
-        # --- Without Query expansion
         else:
             search_query = translated_query
-        # ---------
 
         pool_size = max(k * 10, 50)
         search_results: list[tuple[list[str], float]] = []
@@ -102,7 +120,6 @@ class RetrieverService:
         chunks_map = self._chunks_loader.load(top_ids)
         logger.debug(f"Chunks loaded. Found {len(chunks_map)} items in cache.")
 
-        # --- With Reranker
         if self._extended and self._reranker:
             pool_chunks = [
                 chunks_map[cid] for cid in top_ids if cid in chunks_map
@@ -137,12 +154,11 @@ class RetrieverService:
             return [
                 text_to_chunk[t] for t in best_texts if t in text_to_chunk
             ], translated_query
-        # --- Without Reranker
+
         logger.debug("Returning chunks directly to the LLM")
         return [
             chunks_map[cid] for cid in top_ids[:k] if cid in chunks_map
         ], translated_query
-        # ---------
 
     def search(
         self,
@@ -150,6 +166,17 @@ class RetrieverService:
         k: int = 10,
         question_id: str | None = None,
     ) -> tuple[MinimalSearchResults, list[Chunk], str]:
+        """
+        Executes a search and returns standardized search results.
+
+        Args:
+            original_query: The raw query from the user.
+            k: The number of results to retrieve.
+            question_id: Optional ID for the question.
+
+        Returns:
+            Tuple of results, chunks, and translated query.
+        """
         logger.debug(f"Starting search process (k={k})")
         chunks, translated_query = self.retrieve_chunks(
             original_query=original_query, k=k
@@ -187,6 +214,16 @@ class RetrieverService:
         dataset: RagDataset,
         k: int = 10,
     ) -> Generator[tuple[MinimalSearchResults, list[Chunk], str], None, None]:
+        """
+        Performs a search for every question in a dataset.
+
+        Args:
+            dataset: The dataset of questions.
+            k: The number of results to retrieve per question.
+
+        Yields:
+            Tuple of (search_results, chunks, translated_query).
+        """
         logger.debug(
             f"Streaming search for {len(dataset.rag_questions)} questions."
         )
@@ -202,6 +239,16 @@ class RetrieverService:
         ranked_lists: list[tuple[list[str], float]],
         k: int = 60,
     ) -> list[tuple[str, float]]:
+        """
+        Computes Reciprocal Rank Fusion (RRF) for multiple ranked lists.
+
+        Args:
+            ranked_lists: Lists of ranked chunk IDs with weights.
+            k: The RRF constant.
+
+        Returns:
+            A sorted list of chunk IDs and their RRF scores.
+        """
         scores: dict[str, float] = {}
 
         for doc_list, weight in ranked_lists:
