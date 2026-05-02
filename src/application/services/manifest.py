@@ -5,11 +5,19 @@ from src.application.ports.manifest import ManifestStoragePort
 
 
 class ExtensionStat(TypedDict):
+    """
+    Statistics for a specific file extension.
+    """
+
     file_count: int
     chunk_count: int
 
 
 class ManifestStats(TypedDict):
+    """
+    Comprehensive statistics for the system manifest.
+    """
+
     embedding_model: str
     with_semantic: bool
     chunk_size: int
@@ -21,10 +29,29 @@ class ManifestStats(TypedDict):
 
 
 class ManifestService:
+    """
+    Service for analyzing and summarizing manifest data.
+    """
+
     def __init__(self, storage: ManifestStoragePort) -> None:
+        """
+        Initializes the manifest service.
+
+        Args:
+            storage: Port for reading manifest data.
+        """
         self._storage = storage
 
     def get_stats(self, file_path: Path) -> ManifestStats:
+        """
+        Computes and returns statistics for the manifest at the given path.
+
+        Args:
+            file_path: Path to the manifest file.
+
+        Returns:
+            A ManifestStats dictionary with summarized information.
+        """
         manifest = self._storage.read(file_path, ignore_errors=False)
 
         total_files = 0

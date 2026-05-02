@@ -14,7 +14,18 @@ logger = logging.getLogger(__file__)
 
 
 class ManifestJSONStorage(ManifestStoragePort):
+    """
+    Storage implementation that reads and writes the manifest as JSON.
+    """
+
     def save(self, file_path: Path, manifest: Manifest) -> None:
+        """
+        Saves the manifest model to a JSON file.
+
+        Args:
+            file_path: Destination path.
+            manifest: The manifest model to save.
+        """
         file_write_json(file_path, manifest.model_dump_json(indent=2))
 
     @overload
@@ -37,6 +48,19 @@ class ManifestJSONStorage(ManifestStoragePort):
         file_path: Path,
         ignore_errors: bool = False,
     ) -> Manifest | None:
+        """
+        Reads and parses the manifest from a JSON file.
+
+        Args:
+            file_path: Path to the manifest file.
+            ignore_errors: Whether to suppress errors on failure.
+
+        Returns:
+            The Manifest model or None.
+
+        Raises:
+            SchemaInvalidJSONFormatError: If the manifest JSON is malformed.
+        """
         content = file_load_content(
             file_path,
             ignore_errors=ignore_errors,

@@ -8,6 +8,10 @@ from src.utils.file import file_load_content, get_extension
 
 
 class LocalFileReader(ReaderPort[File]):
+    """
+    Reader that loads local files into File models.
+    """
+
     @overload
     def read(
         self, file_path: Path, ignore_errors: Literal[False] = False
@@ -26,6 +30,16 @@ class LocalFileReader(ReaderPort[File]):
         file_path: Path,
         ignore_errors: bool = False,
     ) -> File | None:
+        """
+        Reads a local file and returns its content and metadata.
+
+        Args:
+            file_path: Path to the file to read.
+            ignore_errors: Whether to suppress errors on failure.
+
+        Returns:
+            The File model or None.
+        """
         content = file_load_content(
             file_path,
             ignore_errors=ignore_errors,

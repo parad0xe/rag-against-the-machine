@@ -10,10 +10,29 @@ logger = logging.getLogger(__file__)
 
 
 class QueryTranslatorService(LLMTranslatorPort):
+    """
+    Service that detects language and translates queries to English.
+    """
+
     def __init__(self, translation_engine: TranslationEnginePort) -> None:
+        """
+        Initializes the query translator service.
+
+        Args:
+            translation_engine: Port for the translation engine.
+        """
         self._engine = translation_engine
 
     def translate_to_english(self, text: str) -> str:
+        """
+        Translates the input text to English if it's not already.
+
+        Args:
+            text: The source text.
+
+        Returns:
+            The English version of the text.
+        """
         if not text.strip():
             return ""
 
@@ -38,6 +57,9 @@ class QueryTranslatorService(LLMTranslatorPort):
             return text
 
     def _is_english(self, text: str) -> bool:
+        """
+        Checks if the provided text is in English.
+        """
         text_sample = text[:500]
         try:
             return bool(detect(text_sample) == "en")

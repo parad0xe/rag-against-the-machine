@@ -22,7 +22,20 @@ logger = logging.getLogger(__file__)
 
 
 class HuggingFaceCausalEngine(TextGenerationEnginePort):
+    """
+    Engine that generates text using Hugging Face's AutoModelForCausalLM.
+    """
+
     def __init__(self, model_name: str) -> None:
+        """
+        Initializes the causal LLM engine.
+
+        Args:
+            model_name: The Hugging Face model identifier.
+
+        Raises:
+            RagError: If the model fails to load into memory.
+        """
         logger.info(f"Loading LLM {model_name}")
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -44,6 +57,17 @@ class HuggingFaceCausalEngine(TextGenerationEnginePort):
         stream: bool = False,
         **kwargs: Any,
     ) -> str | Generator[str, None, None]:
+        """
+        Generates a response using the causal model.
+
+        Args:
+            messages: List of chat messages forming the context.
+            stream: Whether to stream the response.
+            **kwargs: Additional generation parameters.
+
+        Returns:
+            A single string token of the generated response.
+        """
         text = self.tokenizer.apply_chat_template(
             cast(Any, messages),
             tokenize=False,
@@ -67,6 +91,16 @@ class HuggingFaceCausalEngine(TextGenerationEnginePort):
         inputs: Any,
         **kwargs: Any,
     ) -> Generator[str, None, None]:
+        """
+        Handles streaming generation in a separate thread.
+
+        Args:
+            inputs: Tokenized input tensors.
+            **kwargs: Additional generation parameters.
+
+        Yields:
+            Tokens of the generated text.
+        """
         streamer = TextIteratorStreamer(
             self.tokenizer,
             skip_prompt=True,
@@ -96,6 +130,16 @@ class HuggingFaceCausalEngine(TextGenerationEnginePort):
             yield str(new_text)
 
     def _generate_sync(self, inputs: Any, **kwargs: Any) -> str:
+        """
+        Handles synchronous text generation.
+
+        Args:
+            inputs: Tokenized input tensors.
+            **kwargs: Additional generation parameters.
+
+        Returns:
+            The complete generated text string.
+        """
         generation_kwargs = dict(
             **inputs,
             pad_token_id=self.tokenizer.eos_token_id,

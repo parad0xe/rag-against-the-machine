@@ -12,6 +12,10 @@ logger = logging.getLogger(__file__)
 
 
 class ChromaIndexStoreSync(BaseIndexStoreSync):
+    """
+    Synchronization implementation for the Chroma vector index.
+    """
+
     def __init__(
         self,
         dir_path: Path,
@@ -19,6 +23,15 @@ class ChromaIndexStoreSync(BaseIndexStoreSync):
         batch_size: int = 32,
         addition_enable: bool = True,
     ) -> None:
+        """
+        Initializes the Chroma sync store.
+
+        Args:
+            dir_path: Path to the ChromaDB storage directory.
+            embedding_model_name: Name of the SentenceTransformer model.
+            batch_size: Number of chunks per embedding/upsert batch.
+            addition_enable: Whether adding documents is allowed.
+        """
         super().__init__(name="Chroma", addition_enable=addition_enable)
         self._dir_path = dir_path
         self._embedding_model_name = embedding_model_name
@@ -27,6 +40,15 @@ class ChromaIndexStoreSync(BaseIndexStoreSync):
     def commit(
         self, require_reset: bool = False
     ) -> Generator[tuple[int, int, str], None, None]:
+        """
+        Persists staged additions and deletions to ChromaDB.
+
+        Args:
+            require_reset: Whether to clear the collection before starting.
+
+        Yields:
+            Tuple of (current_step, total_steps, description).
+        """
         client = chromadb.PersistentClient(
             path=str(self._dir_path),
             settings=Settings(anonymized_telemetry=False),
@@ -78,6 +100,15 @@ class ChromaIndexStoreSync(BaseIndexStoreSync):
     def _batches(
         self, batch_size: int
     ) -> Generator[tuple[list[str], list[str]], None, None]:
+        """
+        Helper to group staged documents into fixed-size batches.
+
+        Args:
+            batch_size: Number of chunks per batch.
+
+        Yields:
+            Tuple of (batch_chunks, batch_ids).
+        """
         batch_chunks = []
         batch_ids = []
         for doc in self._add_documents:

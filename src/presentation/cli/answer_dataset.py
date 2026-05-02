@@ -42,6 +42,20 @@ def entrypoint_answer_dataset(
     embedding_model_name: str,
     thinking: bool,
 ) -> None:
+    """
+    Processes a whole dataset and saves answers to a JSON file.
+
+    Args:
+        dataset_file_path: Path to the input dataset file.
+        save_dir_path: Directory where results will be saved.
+        bm25_dir_path: Path to the BM25 index directory.
+        chroma_dir_path: Path to the ChromaDB directory.
+        chunks_file_path: Path to the chunks JSON file.
+        manifest_file_path: Path to the manifest JSON file.
+        k: Number of chunks to retrieve per question.
+        embedding_model_name: Name of the embedding model to use.
+        thinking: Whether to enable and show the model's thinking.
+    """
     console = get_console()
 
     console.print()

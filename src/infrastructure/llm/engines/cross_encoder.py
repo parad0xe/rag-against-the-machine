@@ -13,7 +13,17 @@ logger = logging.getLogger(__file__)
 
 
 class CrossEncoderEngine(CrossEncoderEnginePort):
+    """
+    Engine that uses a Cross-Encoder model to score query-chunk pairs.
+    """
+
     def __init__(self, model_name: str) -> None:
+        """
+        Initializes the Cross-Encoder engine.
+
+        Args:
+            model_name: The Hugging Face model identifier.
+        """
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info(f"Loading CrossEncoder model {model_name}")
 
@@ -31,6 +41,16 @@ class CrossEncoderEngine(CrossEncoderEnginePort):
         )
 
     def predict_scores(self, query: str, chunks: Sequence[str]) -> list[float]:
+        """
+        Predicts relevance scores for the given query and chunks.
+
+        Args:
+            query: The search query.
+            chunks: A list of text chunks.
+
+        Returns:
+            A list of floats representing the relevance scores.
+        """
         if not chunks:
             return []
 

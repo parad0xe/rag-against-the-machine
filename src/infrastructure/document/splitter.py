@@ -8,6 +8,10 @@ from src.utils.file import get_extension
 
 
 class LanguageTextSplitter(RecursiveCharacterTextSplitter):
+    """
+    Splitter that uses language-specific separators based on file extensions.
+    """
+
     _EXTENSION_TO_LANGUAGE = {
         ".cpp": Language.CPP,
         ".hpp": Language.CPP,
@@ -60,6 +64,16 @@ class LanguageTextSplitter(RecursiveCharacterTextSplitter):
     def from_extension(
         cls, extension: str, **kwargs: Any
     ) -> LanguageTextSplitter:
+        """
+        Creates a splitter tailored for a specific file extension.
+
+        Args:
+            extension: The file extension (e.g., '.py').
+            **kwargs: Additional arguments for the splitter.
+
+        Returns:
+            A LanguageTextSplitter instance.
+        """
         if not extension.startswith("."):
             extension = f".{extension}"
         extension = extension.lower()
@@ -73,10 +87,27 @@ class LanguageTextSplitter(RecursiveCharacterTextSplitter):
     def from_filename(
         cls, filename: str, **kwargs: Any
     ) -> LanguageTextSplitter:
+        """
+        Creates a splitter tailored for a specific filename.
+
+        Args:
+            filename: The name of the file.
+            **kwargs: Additional arguments for the splitter.
+
+        Returns:
+            A LanguageTextSplitter instance.
+        """
         ext = get_extension(filename)
         return cls.from_extension(ext, **kwargs)
 
     def __init__(self, language: Language | None, **kwargs: Any) -> None:
+        """
+        Initializes the language-aware splitter.
+
+        Args:
+            language: The target programming language.
+            **kwargs: Additional arguments for the base splitter.
+        """
         try:
             separators = (
                 self.get_separators_for_language(language)

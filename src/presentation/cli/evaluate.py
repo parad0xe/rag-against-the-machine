@@ -22,6 +22,17 @@ def entrypoint_evaluate(
     predictions_file_path: Path,
     ks: tuple[PositiveInt, ...] = (1, 3, 5, 10),
 ) -> None:
+    """
+    Evaluates predictions against a ground truth dataset.
+
+    Args:
+        dataset_file_path: Path to the ground truth dataset.
+        predictions_file_path: Path to the JSON file with search results.
+        ks: Tuple of 'k' values to calculate Recall@k for.
+
+    Raises:
+        StorageFileNotFoundError: If the predictions file does not exist.
+    """
     console = get_console()
 
     console.print()

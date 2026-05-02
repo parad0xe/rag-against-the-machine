@@ -7,11 +7,30 @@ from src.utils.file import file_load_content
 
 
 class ChunksJSONFileLoader(ChunksLoaderPort):
+    """
+    Loader that retrieves chunks from a persistent JSON storage.
+    """
+
     def __init__(self, file_path: Path) -> None:
+        """
+        Initializes the chunk loader.
+
+        Args:
+            file_path: Path to the JSON file containing chunks.
+        """
         self._file_path = file_path
         self._cache: dict[str, Chunk] | None = None
 
     def load(self, chunk_ids: list[str]) -> dict[str, Chunk]:
+        """
+        Loads the requested chunks into memory.
+
+        Args:
+            chunk_ids: List of chunk IDs to retrieve.
+
+        Returns:
+            A dictionary mapping IDs to their Chunk data.
+        """
         if not self._file_path.exists():
             return {}
 

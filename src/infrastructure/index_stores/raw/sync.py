@@ -11,11 +11,22 @@ logger = logging.getLogger(__file__)
 
 
 class RawIndexStoreSync(BaseIndexStoreSync):
+    """
+    Synchronization implementation that saves raw chunk metadata to JSON.
+    """
+
     def __init__(
         self,
         file_path: Path,
         addition_enable: bool = True,
     ) -> None:
+        """
+        Initializes the raw sync store.
+
+        Args:
+            file_path: Path to the JSON file where chunks are stored.
+            addition_enable: Whether adding documents is allowed.
+        """
         super().__init__(name="Raw", addition_enable=addition_enable)
         self._file_path = file_path
         self._dir_path = file_path.parent
@@ -23,6 +34,15 @@ class RawIndexStoreSync(BaseIndexStoreSync):
     def commit(
         self, require_reset: bool = False
     ) -> Generator[tuple[int, int, str], None, None]:
+        """
+        Persists additions and deletions to the raw JSON file.
+
+        Args:
+            require_reset: Whether to clear the file before starting.
+
+        Yields:
+            Tuple of (current_step, total_steps, description).
+        """
         yield 0, 1, "Saving chunks data"
 
         data: dict[str, Chunk] = {}

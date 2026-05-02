@@ -7,12 +7,27 @@ from src.utils.common import md5
 
 
 class DocumentLoader(DocumentLoaderPort):
+    """
+    Service that splits files into chunks and generates associated metadata.
+    """
+
     def load(
         self,
         file: File,
         chunk_size: int,
         cached_file: ManifestFileCache | None = None,
     ) -> Document:
+        """
+        Splits a file into multiple chunks and tracks their positions.
+
+        Args:
+            file: The source file model.
+            chunk_size: The desired maximum size for each chunk.
+            cached_file: Existing manifest cache to maintain state.
+
+        Returns:
+            A Document model containing the list of chunks and their metadata.
+        """
         str_file_path: str = str(file.path)
 
         raw_chunks = LanguageTextSplitter.from_filename(
