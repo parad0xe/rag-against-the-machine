@@ -77,9 +77,9 @@ def entrypoint_index(
 
     console.print("[bold cyan][1/3][/] Initializing manifest and stores")
     with console.status(
-        "Loading configurations",
-        spinner="dots",
-        spinner_style="bold magenta",
+            "Loading configurations",
+            spinner="dots",
+            spinner_style="bold magenta",
     ):
         manifest_manager = ManifestManager(
             file_path=manifest_file_path,
@@ -118,24 +118,29 @@ def entrypoint_index(
     )
 
     with Progress(
-        SpinnerColumn(spinner_name="dots", style="bold magenta"),
-        TextColumn("[bold cyan]{task.description}"),
-        BarColumn(bar_width=40),
-        MofNCompleteColumn(),
-        TaskProgressColumn(),
-        TimeElapsedColumn(),
-        TimeRemainingColumn(),
-        console=console,
+            SpinnerColumn(spinner_name="dots", style="bold magenta"),
+            TextColumn("[bold cyan]{task.description}"),
+            BarColumn(bar_width=40),
+            MofNCompleteColumn(),
+            TaskProgressColumn(),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+            console=console,
     ) as progress:
         for repository in repositories:
             task_id = progress.add_task(f"Scanning {repository.name}", total=1)
 
             for total_files, current_path in indexer.index(repository):
+                current_file_path = str(current_path)[-32:]
+                current_file_path = (
+                    f"{' ' * (32 - len(current_file_path))}"
+                    f"...{current_file_path}"
+                )
                 progress.update(task_id, total=total_files)
                 progress.update(
                     task_id,
                     description=(
-                        f"[bold cyan]Parsing:[/] [dim]{current_path.name}[/]"
+                        f"[bold cyan]Parsing:[/] [dim]{current_file_path}[/]"
                     ),
                 )
                 progress.advance(task_id)
@@ -157,14 +162,14 @@ def entrypoint_index(
     console.print("[bold cyan][3/3][/] Committing changes to stores")
 
     with Progress(
-        SpinnerColumn(spinner_name="dots", style="bold magenta"),
-        TextColumn("[bold cyan]{task.description}"),
-        BarColumn(bar_width=40),
-        MofNCompleteColumn(),
-        TaskProgressColumn(),
-        TimeElapsedColumn(),
-        TimeRemainingColumn(),
-        console=console,
+            SpinnerColumn(spinner_name="dots", style="bold magenta"),
+            TextColumn("[bold cyan]{task.description}"),
+            BarColumn(bar_width=40),
+            MofNCompleteColumn(),
+            TaskProgressColumn(),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+            console=console,
     ) as progress:
         active_tasks: dict[str, TaskID] = {}
 
