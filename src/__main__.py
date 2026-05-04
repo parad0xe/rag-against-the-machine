@@ -26,7 +26,7 @@ from src.presentation.cli.index import entrypoint_index
 from src.presentation.cli.manifest_stats import entrypoint_manifest_stats
 from src.presentation.cli.search import entrypoint_search
 from src.presentation.cli.search_dataset import entrypoint_search_dataset
-from src.utils.file import ensure_valid_file_path
+from src.utils.file import ensure_valid_dir_path, ensure_valid_file_path
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -61,6 +61,7 @@ class App:
             verbose: Logging verbosity level (0-2).
         """
         self._prepare(verbose)
+        ensure_valid_dir_path(path)
 
         if not isinstance(extensions, str):
             if isinstance(extensions, Iterable):
